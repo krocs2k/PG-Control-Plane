@@ -20,6 +20,9 @@ import {
   MessageSquare,
   FileText,
   ChevronDown,
+  TestTube2,
+  Shield,
+  Telescope,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -55,6 +58,9 @@ export function Header() {
     { name: 'Recommendations', href: '/ai/recommendations', icon: Lightbulb, description: 'AI Recommendations' },
     { name: 'ChatOps', href: '/ai/chat', icon: MessageSquare, description: 'AI Assistant' },
     { name: 'Reports', href: '/ai/reports', icon: FileText, description: 'Generate Reports' },
+    { name: 'QA Copilot', href: '/ai/qa', icon: TestTube2, description: 'Test Generation' },
+    { name: 'Governance', href: '/ai/governance', icon: Shield, description: 'Compliance & FinOps' },
+    { name: 'Tech Scout', href: '/ai/tech-scout', icon: Telescope, description: 'Version & Trends' },
   ];
 
   const isAiActive = pathname?.startsWith('/ai');
