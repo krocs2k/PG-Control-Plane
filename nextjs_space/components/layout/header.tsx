@@ -107,7 +107,7 @@ export function Header() {
                   <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuContent align="start" className="w-56 bg-slate-800 border-slate-700">
                 {aiNavigation.map((item) => {
                   const Icon = item.icon;
                   return (
