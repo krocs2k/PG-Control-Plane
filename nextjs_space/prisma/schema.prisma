@@ -175,6 +175,12 @@ enum IncidentStatus {
   RESOLVED
 }
 
+enum ForecastStatus {
+  OPEN
+  ACKNOWLEDGED
+  REMEDIATED
+}
+
 model Anomaly {
   id          String          @id @default(cuid())
   clusterId   String
@@ -196,19 +202,21 @@ model Anomaly {
 }
 
 model Forecast {
-  id           String   @id @default(cuid())
-  clusterId    String
-  metricType   String
-  currentValue Float
+  id             String         @id @default(cuid())
+  clusterId      String
+  metricType     String
+  currentValue   Float
   predictedValue Float
-  predictedAt  DateTime
-  confidence   Float
-  riskLevel    String
-  description  String   @db.Text
-  createdAt    DateTime @default(now())
+  predictedAt    DateTime
+  confidence     Float
+  riskLevel      String
+  description    String         @db.Text
+  status         ForecastStatus @default(OPEN)
+  createdAt      DateTime       @default(now())
 
   @@index([clusterId])
   @@index([metricType])
+  @@index([status])
 }
 
 model Recommendation {

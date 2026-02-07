@@ -16,6 +16,9 @@ import {
   Activity,
   ChevronDown,
   ChevronUp,
+  Eye,
+  Wrench,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +55,7 @@ interface Forecast {
   confidence: number;
   riskLevel: string;
   description: string;
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'REMEDIATED';
   createdAt: string;
 }
 
@@ -167,6 +171,30 @@ export default function AIInsightsPage() {
     }
   }
 
+  async function updateForecastStatus(id: string, status: 'ACKNOWLEDGED' | 'REMEDIATED') {
+    try {
+      await fetch('/api/ai/forecasts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+      setForecasts(prev => prev.map(f => f.id === id ? { ...f, status } : f));
+    } catch (error) {
+      console.error('Error updating forecast:', error);
+    }
+  }
+
+  async function dismissForecast(id: string) {
+    try {
+      await fetch(`/api/ai/forecasts?id=${id}`, {
+        method: 'DELETE',
+      });
+      setForecasts(prev => prev.filter(f => f.id !== id));
+    } catch (error) {
+      console.error('Error dismissing forecast:', error);
+    }
+  }
+
   const severityColors: Record<string, string> = {
     CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/30',
     HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -190,6 +218,11 @@ export default function AIInsightsPage() {
   };
 
   const activeAnomalies = anomalies.filter(a => !a.resolved);
+
+  // Group forecasts by status
+  const openForecasts = forecasts.filter(f => !f.status || f.status === 'OPEN');
+  const acknowledgedForecasts = forecasts.filter(f => f.status === 'ACKNOWLEDGED');
+  const remediatedForecasts = forecasts.filter(f => f.status === 'REMEDIATED');
 
   return (
     <div className="space-y-6">
@@ -409,42 +442,159 @@ export default function AIInsightsPage() {
                 <p className="text-sm text-slate-500 mt-1">Generate forecasts to predict future trends</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {forecasts.slice(0, 6).map((forecast, index) => (
-                  <motion.div
-                    key={forecast.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="p-4 border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="font-medium text-slate-200 capitalize">
-                        {forecast.metricType.replace(/_/g, ' ')}
-                      </span>
-                      <Badge className={riskColors[forecast.riskLevel]}>
-                        {forecast.riskLevel} Risk
-                      </Badge>
+              <div className="space-y-6">
+                {/* Open Forecasts */}
+                {openForecasts.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-400" />
+                      Open ({openForecasts.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {openForecasts.map((forecast, index) => (
+                        <ForecastCard
+                          key={forecast.id}
+                          forecast={forecast}
+                          index={index}
+                          riskColors={riskColors}
+                          onAcknowledge={() => updateForecastStatus(forecast.id, 'ACKNOWLEDGED')}
+                          onRemediate={() => updateForecastStatus(forecast.id, 'REMEDIATED')}
+                        />
+                      ))}
                     </div>
-                    <p className="text-sm text-slate-400">{forecast.description}</p>
-                    <div className="mt-3 flex items-center gap-4 text-sm">
-                      <span className="text-slate-500">
-                        Current: <span className="text-slate-300">{forecast.currentValue.toFixed(1)}</span>
-                      </span>
-                      <span className="text-slate-500">
-                        Predicted: <span className="text-slate-300">{forecast.predictedValue.toFixed(1)}</span>
-                      </span>
-                      <span className="text-slate-500">
-                        Confidence: <span className="text-slate-300">{(forecast.confidence * 100).toFixed(0)}%</span>
-                      </span>
+                  </div>
+                )}
+
+                {/* Acknowledged Forecasts */}
+                {acknowledgedForecasts.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-blue-400" />
+                      Acknowledged ({acknowledgedForecasts.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {acknowledgedForecasts.map((forecast, index) => (
+                        <ForecastCard
+                          key={forecast.id}
+                          forecast={forecast}
+                          index={index}
+                          riskColors={riskColors}
+                          onRemediate={() => updateForecastStatus(forecast.id, 'REMEDIATED')}
+                          onDismiss={() => dismissForecast(forecast.id)}
+                        />
+                      ))}
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                )}
+
+                {/* Remediated Forecasts */}
+                {remediatedForecasts.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      Remediated ({remediatedForecasts.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {remediatedForecasts.map((forecast, index) => (
+                        <ForecastCard
+                          key={forecast.id}
+                          forecast={forecast}
+                          index={index}
+                          riskColors={riskColors}
+                          onDismiss={() => dismissForecast(forecast.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+// Forecast Card Component
+function ForecastCard({
+  forecast,
+  index,
+  riskColors,
+  onAcknowledge,
+  onRemediate,
+  onDismiss,
+}: {
+  forecast: Forecast;
+  index: number;
+  riskColors: Record<string, string>;
+  onAcknowledge?: () => void;
+  onRemediate?: () => void;
+  onDismiss?: () => void;
+}) {
+  const statusColors: Record<string, string> = {
+    OPEN: 'bg-orange-500/20 text-orange-400',
+    ACKNOWLEDGED: 'bg-blue-500/20 text-blue-400',
+    REMEDIATED: 'bg-green-500/20 text-green-400',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="p-4 border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-slate-200 capitalize">
+            {forecast.metricType.replace(/_/g, ' ')}
+          </span>
+          <Badge className={statusColors[forecast.status || 'OPEN']}>
+            {forecast.status || 'OPEN'}
+          </Badge>
+        </div>
+        <Badge className={riskColors[forecast.riskLevel]}>
+          {forecast.riskLevel} Risk
+        </Badge>
+      </div>
+      <p className="text-sm text-slate-400">{forecast.description}</p>
+      <div className="mt-3 flex items-center gap-4 text-sm">
+        <span className="text-slate-500">
+          Current: <span className="text-slate-300">{forecast.currentValue.toFixed(1)}</span>
+        </span>
+        <span className="text-slate-500">
+          Predicted: <span className="text-slate-300">{forecast.predictedValue.toFixed(1)}</span>
+        </span>
+        <span className="text-slate-500">
+          Confidence: <span className="text-slate-300">{(forecast.confidence * 100).toFixed(0)}%</span>
+        </span>
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        {onAcknowledge && (
+          <Button size="sm" variant="outline" onClick={onAcknowledge}>
+            <Eye className="h-4 w-4 mr-1" />
+            Acknowledge
+          </Button>
+        )}
+        {onRemediate && (
+          <Button size="sm" variant="outline" onClick={onRemediate}>
+            <Wrench className="h-4 w-4 mr-1" />
+            Remediated
+          </Button>
+        )}
+        {onDismiss && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDismiss}
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Dismiss
+          </Button>
+        )}
+      </div>
+    </motion.div>
   );
 }

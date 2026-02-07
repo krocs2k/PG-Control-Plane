@@ -5,6 +5,57 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'id and status are required' }, { status: 400 });
+    }
+
+    const forecast = await prisma.forecast.update({
+      where: { id },
+      data: { status },
+    });
+
+    return NextResponse.json(forecast);
+  } catch (error) {
+    console.error('Error updating forecast:', error);
+    return NextResponse.json({ error: 'Failed to update forecast' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    await prisma.forecast.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting forecast:', error);
+    return NextResponse.json({ error: 'Failed to delete forecast' }, { status: 500 });
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
