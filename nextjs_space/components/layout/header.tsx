@@ -24,6 +24,7 @@ import {
   Shield,
   Telescope,
   Users,
+  Network,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -54,7 +55,11 @@ export function Header() {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Clusters', href: '/clusters', icon: Server },
-    ...(isAdmin ? [{ name: 'Admin', href: '/admin/users', icon: Users }] : []),
+  ];
+
+  const adminNavigation = [
+    { name: 'User Management', href: '/admin/users', icon: Users, description: 'Manage users & MFA' },
+    { name: 'Federation', href: '/admin/federation', icon: Network, description: 'Control Plane Clustering' },
   ];
 
   const aiNavigation = [
@@ -128,6 +133,38 @@ export function Header() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Admin Dropdown */}
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={pathname?.startsWith('/admin') ? 'secondary' : 'ghost'}
+                    className={pathname?.startsWith('/admin') ? 'bg-slate-700' : ''}
+                  >
+                    <Shield className="mr-2 h-4 w-4 text-amber-400" />
+                    Admin
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 bg-slate-800 border-slate-700">
+                  {adminNavigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem key={item.name} asChild>
+                        <Link href={item.href} className="flex items-center gap-3 cursor-pointer">
+                          <Icon className="h-4 w-4 text-amber-400" />
+                          <div>
+                            <div className="font-medium">{item.name}</div>
+                            <div className="text-xs text-slate-400">{item.description}</div>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
         </div>
 

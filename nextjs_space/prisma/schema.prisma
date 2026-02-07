@@ -760,3 +760,107 @@ model WalActivity {
   @@index([nodeId])
   @@index([timestamp])
 }
+
+// Control Plane Federation Models
+
+enum FederationRole {
+  PRINCIPLE
+  PARTNER
+  STANDALONE
+}
+
+enum FederationRequestStatus {
+  PENDING
+  ACKNOWLEDGED
+  REJECTED
+  EXPIRED
+  PROMOTION_PENDING
+}
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// Represents the local control plane's identity and role
+model ControlPlaneIdentity {
+  id              String         @id @default(cuid())
+  instanceId      String         @unique  // Unique identifier for this instance
+  name            String
+  domain          String         // The domain/URL of this control plane
+  role            FederationRole @default(STANDALONE)
+  principleId     String?        // If PARTNER, references the principle's instanceId
+  apiKey          String         @unique  // Secret key for federation auth
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// Represents connected control planes (partners or principle)
+model FederatedNode {
+  id                  String         @id @default(cuid())
+  instanceId          String         @unique  // Remote instance's unique ID
+  name                String
+  domain              String         // The domain/URL of the remote control plane
+  role                FederationRole // From our perspective: PRINCIPLE or PARTNER
+  apiKey              String?        // Key to authenticate with remote
+  status              String         @default("CONNECTED")  // CONNECTED, DISCONNECTED, SYNCING
+  lastHeartbeat       DateTime?
+  lastSyncAt          DateTime?
+  syncEnabled         Boolean        @default(true)
+  promotionRequestAt  DateTime?      // When a promotion request was made
+  promotionRequestBy  String?        // Who requested promotion
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  requests            FederationRequest[] @relation("NodeRequests")
+  syncLogs            SyncLog[]
+
+  @@index([instanceId])
+  @@index([role])
+  @@index([status])
+}
+
+// Partnership requests between control planes
+model FederationRequest {
+  id              String                   @id @default(cuid())
+  nodeId          String?
+  node            FederatedNode?           @relation("NodeRequests", fields: [nodeId], references: [id], onDelete: SetNull)
+  fromInstanceId  String                   // Instance ID of requester
+  fromName        String
+  fromDomain      String
+  toInstanceId    String?                  // Instance ID of target (null for incoming)
+  requestType     String                   // PARTNERSHIP, PROMOTION
+  status          FederationRequestStatus  @default(PENDING)
+  message         String?                  @db.Text
+  apiKey          String?                  // Provided API key for auth
+  expiresAt       DateTime?                // For promotion requests (30 sec timeout)
+  respondedAt     DateTime?
+  respondedBy     String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([status])
+  @@index([fromInstanceId])
+  @@index([requestType])
+}
+
+// Sync operation logs
+model SyncLog {
+  id              String     @id @default(cuid())
+  nodeId          String
+  node            FederatedNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  direction       String     // PUSH (to partner) or PULL (from principle)
+  entityType      String     // Project, Cluster, User, etc.
+  entityCount     Int        @default(0)
+  status          SyncStatus @default(PENDING)
+  errorMessage    String?    @db.Text
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime   @default(now())
+
+  @@index([nodeId])
+  @@index([status])
+  @@index([createdAt])
+}
