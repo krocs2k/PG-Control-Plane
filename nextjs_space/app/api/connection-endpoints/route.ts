@@ -15,6 +15,17 @@ function generateSlug(clusterName: string, endpointName: string): string {
   return `${base}-${uniqueSuffix}`;
 }
 
+// Extract domain from request headers (dynamic based on deployment)
+function getDynamicDomain(request: NextRequest): string {
+  // Priority: X-Forwarded-Host > Host header > fallback
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = request.headers.get('host');
+  const protocol = request.headers.get('x-forwarded-proto') || 'https';
+  
+  const domain = forwardedHost || host || 'localhost:3000';
+  return `${protocol}://${domain}`;
+}
+
 // Generate connection string based on endpoint config
 function generateConnectionString(
   endpoint: {
@@ -26,7 +37,8 @@ function generateConnectionString(
   domain: string,
   includeCredentials: boolean = false
 ): string {
-  const host = domain.replace(/^https?:\/\//, '').split(':')[0];
+  // Extract just the hostname (without protocol and port from the URL)
+  const host = domain.replace(/^https?:\/\//, '').split(':')[0].split('/')[0];
   const username = includeCredentials ? 'app_user' : '<username>';
   const password = includeCredentials ? '********' : '<password>';
   const dbName = endpoint.slug;
@@ -81,7 +93,8 @@ export async function GET(request: NextRequest) {
         where: { clusterId: endpoint.clusterId },
       });
 
-      const domain = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      // Get domain dynamically from request headers
+      const domain = getDynamicDomain(request);
 
       return NextResponse.json({
         ...endpoint,
@@ -112,7 +125,8 @@ export async function GET(request: NextRequest) {
       include: { nodes: true },
     });
 
-    const domain = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    // Get domain dynamically from request headers
+    const domain = getDynamicDomain(request);
 
     // Add connection strings to endpoints
     const endpointsWithStrings = endpoints.map((ep) => ({
@@ -212,7 +226,8 @@ export async function POST(request: NextRequest) {
       afterState: endpoint,
     });
 
-    const domain = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    // Get domain dynamically from request headers
+    const domain = getDynamicDomain(request);
 
     return NextResponse.json({
       ...endpoint,
@@ -332,7 +347,8 @@ export async function PATCH(request: NextRequest) {
       afterState: updatedEndpoint,
     });
 
-    const domain = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    // Get domain dynamically from request headers
+    const domain = getDynamicDomain(request);
 
     return NextResponse.json({
       ...updatedEndpoint,
