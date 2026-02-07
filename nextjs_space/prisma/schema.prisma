@@ -370,3 +370,171 @@ model Metric {
   @@index([clusterId, name, timestamp])
   @@index([nodeId, name, timestamp])
 }
+
+// Phase 3: Backup & Recovery Management
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  VALIDATING
+  VERIFIED
+}
+
+enum BackupType {
+  FULL
+  INCREMENTAL
+  WAL
+  PITR
+}
+
+model Backup {
+  id              String       @id @default(cuid())
+  clusterId       String
+  nodeId          String?
+  type            BackupType   @default(FULL)
+  status          BackupStatus @default(PENDING)
+  size            BigInt?
+  location        String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  walStart        String?
+  walEnd          String?
+  pitrTarget      DateTime?
+  retentionDays   Int          @default(30)
+  verified        Boolean      @default(false)
+  verifiedAt      DateTime?
+  errorMessage    String?      @db.Text
+  metadata        String?      @db.Text
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([clusterId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model BackupSchedule {
+  id              String   @id @default(cuid())
+  clusterId       String   @unique
+  enabled         Boolean  @default(true)
+  fullBackupCron  String   @default("0 2 * * 0")
+  incrBackupCron  String   @default("0 2 * * 1-6")
+  walArchiving    Boolean  @default(true)
+  retentionDays   Int      @default(30)
+  lastFullBackup  DateTime?
+  lastIncrBackup  DateTime?
+  nextFullBackup  DateTime?
+  nextIncrBackup  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clusterId])
+}
+
+// Phase 3: Alert Management
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  SUPPRESSED
+}
+
+model Alert {
+  id            String        @id @default(cuid())
+  clusterId     String
+  nodeId        String?
+  ruleId        String?
+  severity      AlertSeverity
+  status        AlertStatus   @default(ACTIVE)
+  title         String
+  message       String        @db.Text
+  metricName    String?
+  metricValue   Float?
+  threshold     Float?
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  suppressedUntil DateTime?
+  notificationsSent Int       @default(0)
+  lastNotifiedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([clusterId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model AlertRule {
+  id              String        @id @default(cuid())
+  clusterId       String?
+  name            String
+  description     String?       @db.Text
+  enabled         Boolean       @default(true)
+  metric          String
+  operator        String
+  threshold       Float
+  duration        Int           @default(60)
+  severity        AlertSeverity @default(WARNING)
+  cooldownMinutes Int           @default(5)
+  notifyEmail     Boolean       @default(true)
+  notifyWebhook   Boolean       @default(false)
+  webhookUrl      String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([clusterId])
+  @@index([enabled])
+}
+
+// Phase 3: Connection Pooling Management
+
+enum PoolerType {
+  PGBOUNCER
+  PGPOOL
+  ODYSSEY
+}
+
+enum PoolMode {
+  SESSION
+  TRANSACTION
+  STATEMENT
+}
+
+model ConnectionPool {
+  id                  String     @id @default(cuid())
+  clusterId           String     @unique
+  enabled             Boolean    @default(true)
+  poolerType          PoolerType @default(PGBOUNCER)
+  poolMode            PoolMode   @default(TRANSACTION)
+  maxClientConn       Int        @default(1000)
+  defaultPoolSize     Int        @default(20)
+  minPoolSize         Int        @default(5)
+  reservePoolSize     Int        @default(5)
+  reservePoolTimeout  Int        @default(5)
+  maxDbConnections    Int        @default(100)
+  serverIdleTimeout   Int        @default(600)
+  clientIdleTimeout   Int        @default(0)
+  queryTimeout        Int        @default(0)
+  serverResetQuery    String     @default("DISCARD ALL")
+  serverCheckQuery    String     @default("SELECT 1")
+  stats               String?    @db.Text
+  lastStatsUpdate     DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@index([clusterId])
+}

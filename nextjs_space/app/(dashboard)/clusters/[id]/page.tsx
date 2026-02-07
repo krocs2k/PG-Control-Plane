@@ -25,6 +25,9 @@ import {
   Wrench,
   AlertTriangle,
   MoreVertical,
+  Archive,
+  Bell,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -311,7 +314,25 @@ export default function ClusterDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href={`/clusters/${clusterId}/backups`}>
+            <Button variant="outline" className="gap-2">
+              <Archive className="h-4 w-4" />
+              Backups
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/alerts`}>
+            <Button variant="outline" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Alerts
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/pools`}>
+            <Button variant="outline" className="gap-2">
+              <Layers className="h-4 w-4" />
+              Pools
+            </Button>
+          </Link>
           <Link href={`/clusters/${clusterId}/failover`}>
             <Button variant="outline" className="gap-2">
               <ArrowLeftRight className="h-4 w-4" />
