@@ -15,11 +15,31 @@ import {
   Cpu,
   HardDrive,
   Network,
+  Plus,
+  Pencil,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Node {
   id: string;
@@ -49,6 +69,28 @@ export default function ClusterDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteNodeId, setDeleteNodeId] = useState<string | null>(null);
 
+  // Cluster edit state
+  const [isEditClusterOpen, setIsEditClusterOpen] = useState(false);
+  const [clusterForm, setClusterForm] = useState({
+    name: '',
+    status: '',
+    replicationMode: '',
+    topology: '',
+  });
+  const [savingCluster, setSavingCluster] = useState(false);
+
+  // Node dialog state
+  const [isNodeDialogOpen, setIsNodeDialogOpen] = useState(false);
+  const [editingNode, setEditingNode] = useState<Node | null>(null);
+  const [nodeForm, setNodeForm] = useState({
+    name: '',
+    host: '',
+    port: '',
+    role: 'REPLICA',
+    status: 'OFFLINE',
+  });
+  const [savingNode, setSavingNode] = useState(false);
+
   const clusterId = params?.id as string;
 
   useEffect(() => {
@@ -73,17 +115,107 @@ export default function ClusterDetailPage() {
     }
   }, [clusterId, router]);
 
+  // Cluster edit handlers
+  function openEditCluster() {
+    if (!cluster) return;
+    setClusterForm({
+      name: cluster.name,
+      status: cluster.status,
+      replicationMode: cluster.replicationMode,
+      topology: cluster.topology,
+    });
+    setIsEditClusterOpen(true);
+  }
+
+  async function handleUpdateCluster() {
+    if (!cluster) return;
+    setSavingCluster(true);
+    try {
+      const res = await fetch(`/api/clusters/${cluster.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clusterForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setCluster((prev) => (prev ? { ...prev, ...updated } : prev));
+        setIsEditClusterOpen(false);
+      }
+    } catch (error) {
+      console.error('Error updating cluster:', error);
+    } finally {
+      setSavingCluster(false);
+    }
+  }
+
+  // Node handlers
+  function openAddNode() {
+    setEditingNode(null);
+    setNodeForm({ name: '', host: '', port: '', role: 'REPLICA', status: 'OFFLINE' });
+    setIsNodeDialogOpen(true);
+  }
+
+  function openEditNode(node: Node) {
+    setEditingNode(node);
+    setNodeForm({
+      name: node.name,
+      host: node.host,
+      port: String(node.port),
+      role: node.role,
+      status: node.status,
+    });
+    setIsNodeDialogOpen(true);
+  }
+
+  async function handleSaveNode() {
+    if (!nodeForm.name || !nodeForm.host || !nodeForm.port) return;
+    setSavingNode(true);
+    try {
+      if (editingNode) {
+        // Update existing node
+        const res = await fetch(`/api/nodes/${editingNode.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nodeForm),
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setCluster((prev) =>
+            prev
+              ? { ...prev, nodes: prev.nodes.map((n) => (n.id === updated.id ? updated : n)) }
+              : prev
+          );
+        }
+      } else {
+        // Create new node
+        const res = await fetch('/api/nodes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...nodeForm, clusterId }),
+        });
+        if (res.ok) {
+          const newNode = await res.json();
+          setCluster((prev) =>
+            prev ? { ...prev, nodes: [...prev.nodes, newNode] } : prev
+          );
+        }
+      }
+      setIsNodeDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving node:', error);
+    } finally {
+      setSavingNode(false);
+    }
+  }
+
   async function handleDeleteNode(nodeId: string) {
     if (!confirm('Are you sure you want to remove this node?')) return;
-
     setDeleteNodeId(nodeId);
     try {
       const res = await fetch(`/api/nodes/${nodeId}`, { method: 'DELETE' });
       if (res.ok) {
         setCluster((prev) =>
-          prev
-            ? { ...prev, nodes: (prev.nodes ?? []).filter((n) => n?.id !== nodeId) }
-            : null
+          prev ? { ...prev, nodes: prev.nodes.filter((n) => n.id !== nodeId) } : null
         );
       }
     } catch (error) {
@@ -115,8 +247,8 @@ export default function ClusterDetailPage() {
     );
   }
 
-  const primaryNode = (cluster.nodes ?? []).find((n) => n?.role === 'PRIMARY');
-  const replicaNodes = (cluster.nodes ?? []).filter((n) => n?.role === 'REPLICA');
+  const primaryNode = cluster.nodes.find((n) => n.role === 'PRIMARY');
+  const replicaNodes = cluster.nodes.filter((n) => n.role === 'REPLICA');
 
   return (
     <div className="space-y-6">
@@ -137,7 +269,10 @@ export default function ClusterDetailPage() {
             </p>
           </div>
         </div>
-{/* Settings button reserved for future implementation */}
+        <Button variant="outline" className="gap-2" onClick={openEditCluster}>
+          <Settings className="h-4 w-4" />
+          Edit Cluster
+        </Button>
       </div>
 
       {/* Cluster Info Cards */}
@@ -167,7 +302,7 @@ export default function ClusterDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-slate-400">Total Nodes</p>
-                  <p className="text-xl font-bold text-slate-100">{cluster.nodes?.length ?? 0}</p>
+                  <p className="text-xl font-bold text-slate-100">{cluster.nodes.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -217,13 +352,21 @@ export default function ClusterDetailPage() {
               <CardTitle>Nodes</CardTitle>
               <CardDescription>Database nodes in this cluster</CardDescription>
             </div>
+            <Button className="gap-2" onClick={openAddNode}>
+              <Plus className="h-4 w-4" />
+              Add Node
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {(cluster.nodes?.length ?? 0) === 0 ? (
+          {cluster.nodes.length === 0 ? (
             <div className="text-center py-12">
               <Server className="h-12 w-12 text-slate-600 mx-auto mb-4" />
               <p className="text-slate-400">No nodes in this cluster</p>
+              <Button className="mt-4 gap-2" onClick={openAddNode}>
+                <Plus className="h-4 w-4" />
+                Add First Node
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -250,19 +393,28 @@ export default function ClusterDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-400 hover:text-red-300"
-                      onClick={() => handleDeleteNode(primaryNode.id)}
-                      disabled={deleteNodeId === primaryNode.id}
-                    >
-                      {deleteNodeId === primaryNode.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditNode(primaryNode)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={() => handleDeleteNode(primaryNode.id)}
+                        disabled={deleteNodeId === primaryNode.id}
+                      >
+                        {deleteNodeId === primaryNode.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -270,7 +422,7 @@ export default function ClusterDetailPage() {
               {/* Replica Nodes */}
               {replicaNodes.map((node, index) => (
                 <motion.div
-                  key={node?.id}
+                  key={node.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
@@ -283,28 +435,37 @@ export default function ClusterDetailPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-100">{node?.name}</span>
+                          <span className="font-semibold text-slate-100">{node.name}</span>
                           <Badge>REPLICA</Badge>
-                          <StatusBadge status={node?.status ?? 'UNKNOWN'} />
+                          <StatusBadge status={node.status} />
                         </div>
                         <p className="text-sm text-slate-400">
-                          {node?.host}:{node?.port}
+                          {node.host}:{node.port}
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-400 hover:text-red-300"
-                      onClick={() => handleDeleteNode(node?.id)}
-                      disabled={deleteNodeId === node?.id}
-                    >
-                      {deleteNodeId === node?.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditNode(node)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={() => handleDeleteNode(node.id)}
+                        disabled={deleteNodeId === node.id}
+                      >
+                        {deleteNodeId === node.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -348,6 +509,172 @@ export default function ClusterDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Cluster Dialog */}
+      <Dialog open={isEditClusterOpen} onOpenChange={setIsEditClusterOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Cluster</DialogTitle>
+            <DialogDescription>Update cluster configuration</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cluster-name">Cluster Name</Label>
+              <Input
+                id="cluster-name"
+                value={clusterForm.name}
+                onChange={(e) => setClusterForm({ ...clusterForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cluster-status">Status</Label>
+              <Select
+                value={clusterForm.status}
+                onValueChange={(val) => setClusterForm({ ...clusterForm, status: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PROVISIONING">Provisioning</SelectItem>
+                  <SelectItem value="HEALTHY">Healthy</SelectItem>
+                  <SelectItem value="DEGRADED">Degraded</SelectItem>
+                  <SelectItem value="FAILING">Failing</SelectItem>
+                  <SelectItem value="RECOVERING">Recovering</SelectItem>
+                  <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="replication-mode">Replication Mode</Label>
+              <Select
+                value={clusterForm.replicationMode}
+                onValueChange={(val) => setClusterForm({ ...clusterForm, replicationMode: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SYNC">Synchronous</SelectItem>
+                  <SelectItem value="ASYNC">Asynchronous</SelectItem>
+                  <SelectItem value="QUORUM">Quorum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="topology">Topology</Label>
+              <Select
+                value={clusterForm.topology}
+                onValueChange={(val) => setClusterForm({ ...clusterForm, topology: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="ha">High Availability</SelectItem>
+                  <SelectItem value="multi-region">Multi-Region</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditClusterOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateCluster} disabled={savingCluster}>
+              {savingCluster && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Node Dialog (Add/Edit) */}
+      <Dialog open={isNodeDialogOpen} onOpenChange={setIsNodeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingNode ? 'Edit Node' : 'Add Node'}</DialogTitle>
+            <DialogDescription>
+              {editingNode ? 'Update node configuration' : 'Add a new node to the cluster'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="node-name">Node Name</Label>
+              <Input
+                id="node-name"
+                placeholder="e.g., pg-replica-3"
+                value={nodeForm.name}
+                onChange={(e) => setNodeForm({ ...nodeForm, name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="node-host">Host</Label>
+                <Input
+                  id="node-host"
+                  placeholder="e.g., 192.168.1.100"
+                  value={nodeForm.host}
+                  onChange={(e) => setNodeForm({ ...nodeForm, host: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="node-port">Port</Label>
+                <Input
+                  id="node-port"
+                  type="number"
+                  placeholder="5432"
+                  value={nodeForm.port}
+                  onChange={(e) => setNodeForm({ ...nodeForm, port: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="node-role">Role</Label>
+                <Select
+                  value={nodeForm.role}
+                  onValueChange={(val) => setNodeForm({ ...nodeForm, role: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PRIMARY">Primary</SelectItem>
+                    <SelectItem value="REPLICA">Replica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="node-status">Status</Label>
+                <Select
+                  value={nodeForm.status}
+                  onValueChange={(val) => setNodeForm({ ...nodeForm, status: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ONLINE">Online</SelectItem>
+                    <SelectItem value="OFFLINE">Offline</SelectItem>
+                    <SelectItem value="DRAINING">Draining</SelectItem>
+                    <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNodeDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSaveNode}
+              disabled={savingNode || !nodeForm.name || !nodeForm.host || !nodeForm.port}
+            >
+              {savingNode && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {editingNode ? 'Save Changes' : 'Add Node'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

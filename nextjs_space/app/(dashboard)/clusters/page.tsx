@@ -12,11 +12,28 @@ import {
   Trash2,
   Loader2,
   Eye,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/status-badge';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Cluster {
   id: string;
@@ -34,6 +51,17 @@ export default function ClustersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  
+  // Edit dialog state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    status: '',
+    replicationMode: '',
+    topology: '',
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchClusters();
@@ -64,6 +92,41 @@ export default function ClustersPage() {
       console.error('Error deleting cluster:', error);
     } finally {
       setDeleteId(null);
+    }
+  }
+
+  function openEdit(cluster: Cluster) {
+    setEditingCluster(cluster);
+    setEditForm({
+      name: cluster.name,
+      status: cluster.status,
+      replicationMode: cluster.replicationMode,
+      topology: cluster.topology,
+    });
+    setIsEditOpen(true);
+  }
+
+  async function handleUpdate() {
+    if (!editingCluster) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/clusters/${editingCluster.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setClusters((prev) =>
+          prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
+        );
+        setIsEditOpen(false);
+        setEditingCluster(null);
+      }
+    } catch (error) {
+      console.error('Error updating cluster:', error);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -192,6 +255,13 @@ export default function ClustersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => openEdit(cluster)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                           onClick={() => handleDelete(cluster?.id)}
                           disabled={deleteId === cluster?.id}
@@ -211,6 +281,84 @@ export default function ClustersPage() {
           </div>
         </Card>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Cluster</DialogTitle>
+            <DialogDescription>Update cluster configuration</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Cluster Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={editForm.status}
+                onValueChange={(val) => setEditForm({ ...editForm, status: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PROVISIONING">Provisioning</SelectItem>
+                  <SelectItem value="HEALTHY">Healthy</SelectItem>
+                  <SelectItem value="DEGRADED">Degraded</SelectItem>
+                  <SelectItem value="FAILING">Failing</SelectItem>
+                  <SelectItem value="RECOVERING">Recovering</SelectItem>
+                  <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-replication">Replication Mode</Label>
+              <Select
+                value={editForm.replicationMode}
+                onValueChange={(val) => setEditForm({ ...editForm, replicationMode: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SYNC">Synchronous</SelectItem>
+                  <SelectItem value="ASYNC">Asynchronous</SelectItem>
+                  <SelectItem value="QUORUM">Quorum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-topology">Topology</Label>
+              <Select
+                value={editForm.topology}
+                onValueChange={(val) => setEditForm({ ...editForm, topology: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="ha">High Availability</SelectItem>
+                  <SelectItem value="multi-region">Multi-Region</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdate} disabled={saving || !editForm.name.trim()}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,7 +6,13 @@ import Link from 'next/link';
 import { Database, ArrowLeft, Loader2, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Project {
@@ -128,17 +134,18 @@ export default function NewClusterPage() {
               <label className="text-sm font-medium text-slate-300">Project</label>
               <Select
                 value={formData.projectId}
-                onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                required
+                onValueChange={(val) => setFormData({ ...formData, projectId: val })}
               >
-                <option value="" disabled>
-                  Select a project
-                </option>
-                {(projects ?? []).map((project) => (
-                  <option key={project?.id} value={project?.id}>
-                    {project?.name} ({project?.environment})
-                  </option>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(projects ?? []).map((project) => (
+                    <SelectItem key={project?.id} value={project?.id}>
+                      {project?.name} ({project?.environment})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
 
@@ -178,10 +185,15 @@ export default function NewClusterPage() {
               <label className="text-sm font-medium text-slate-300">Replication Mode</label>
               <Select
                 value={formData.replicationMode}
-                onChange={(e) => setFormData({ ...formData, replicationMode: e.target.value })}
+                onValueChange={(val) => setFormData({ ...formData, replicationMode: val })}
               >
-                <option value="ASYNC">Asynchronous</option>
-                <option value="SYNC">Synchronous</option>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ASYNC">Asynchronous</SelectItem>
+                  <SelectItem value="SYNC">Synchronous</SelectItem>
+                </SelectContent>
               </Select>
               <p className="text-xs text-slate-400">
                 {formData.replicationMode === 'SYNC'

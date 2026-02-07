@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Database, LayoutDashboard, Server, LogOut, User, Moon, Sun, Menu, X } from 'lucide-react';
+import { Database, LayoutDashboard, Server, LogOut, User, Moon, Sun, Menu, X, FolderKanban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
@@ -23,6 +23,7 @@ export function Header() {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Clusters', href: '/clusters', icon: Server },
   ];
 
