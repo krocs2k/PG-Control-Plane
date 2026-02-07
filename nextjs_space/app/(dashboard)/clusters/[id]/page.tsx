@@ -31,6 +31,7 @@ import {
   FileWarning,
   BarChart3,
   Radio,
+  Link2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -364,6 +365,12 @@ export default function ClusterDetailPage() {
             <Button variant="outline" className="gap-2">
               <GitBranch className="h-4 w-4" />
               Routing
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/endpoints`}>
+            <Button variant="outline" className="gap-2">
+              <Link2 className="h-4 w-4" />
+              Endpoints
             </Button>
           </Link>
           <Button variant="outline" className="gap-2" onClick={openEditCluster}>

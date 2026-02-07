@@ -205,6 +205,49 @@ model RoutingConfig {
   @@index([clusterId])
 }
 
+// Connection Endpoints for PostgreSQL proxy routing
+enum EndpointMode {
+  READ_WRITE
+  READ_ONLY
+  WRITE_ONLY
+  BALANCED
+}
+
+enum EndpointStatus {
+  ACTIVE
+  DISABLED
+  MAINTENANCE
+}
+
+model ConnectionEndpoint {
+  id              String         @id @default(cuid())
+  clusterId       String
+  name            String
+  slug            String         @unique
+  mode            EndpointMode   @default(READ_WRITE)
+  status          EndpointStatus @default(ACTIVE)
+  port            Int            @default(5432)
+  sslMode         String         @default("require")
+  maxConnections  Int            @default(100)
+  poolSize        Int            @default(20)
+  idleTimeout     Int            @default(300)
+  // Routing weights override
+  readWeight      Int            @default(100)
+  writeWeight     Int            @default(100)
+  // Stats
+  activeConnections Int          @default(0)
+  totalConnections  BigInt       @default(0)
+  bytesIn           BigInt       @default(0)
+  bytesOut          BigInt       @default(0)
+  lastUsedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([clusterId])
+  @@index([slug])
+  @@index([status])
+}
+
 model NodeLifecycleEvent {
   id          String   @id @default(cuid())
   nodeId      String
