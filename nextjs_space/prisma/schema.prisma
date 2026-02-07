@@ -55,17 +55,62 @@ model Organization {
   projects  Project[]
 }
 
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  LOCKED
+  PENDING
+}
+
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  passwordHash String
-  name         String?
-  role         UserRole     @default(VIEWER)
-  orgId        String?
-  organization Organization? @relation(fields: [orgId], references: [id])
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  auditLogs    AuditLog[]
+  id              String       @id @default(cuid())
+  email           String       @unique
+  passwordHash    String
+  name            String?
+  role            UserRole     @default(VIEWER)
+  status          UserStatus   @default(ACTIVE)
+  orgId           String?
+  organization    Organization? @relation(fields: [orgId], references: [id])
+  // MFA fields
+  mfaEnabled      Boolean      @default(false)
+  mfaSecret       String?
+  mfaBackupCodes  String[]
+  mfaVerifiedAt   DateTime?
+  // Security fields
+  failedAttempts  Int          @default(0)
+  lockedUntil     DateTime?
+  lastLoginAt     DateTime?
+  lastLoginIp     String?
+  passwordChangedAt DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  auditLogs       AuditLog[]
+  sessions        UserSession[]
+  loginHistory    LoginHistory[]
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token        String   @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+}
+
+model LoginHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  success   Boolean
+  reason    String?
+  mfaUsed   Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model Project {

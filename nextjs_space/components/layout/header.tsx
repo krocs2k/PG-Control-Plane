@@ -23,6 +23,7 @@ import {
   TestTube2,
   Shield,
   Telescope,
+  Users,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -47,10 +48,13 @@ export function Header() {
 
   if (!session?.user) return null;
 
+  const isAdmin = session.user?.role === 'ADMIN' || session.user?.role === 'OWNER';
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Clusters', href: '/clusters', icon: Server },
+    ...(isAdmin ? [{ name: 'Admin', href: '/admin/users', icon: Users }] : []),
   ];
 
   const aiNavigation = [
