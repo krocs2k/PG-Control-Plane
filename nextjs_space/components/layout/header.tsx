@@ -3,7 +3,30 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Database, LayoutDashboard, Server, LogOut, User, Moon, Sun, Menu, X, FolderKanban } from 'lucide-react';
+import {
+  Database,
+  LayoutDashboard,
+  Server,
+  LogOut,
+  User,
+  Moon,
+  Sun,
+  Menu,
+  X,
+  FolderKanban,
+  Brain,
+  Sparkles,
+  Lightbulb,
+  MessageSquare,
+  FileText,
+  ChevronDown,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
@@ -26,6 +49,15 @@ export function Header() {
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Clusters', href: '/clusters', icon: Server },
   ];
+
+  const aiNavigation = [
+    { name: 'AI Insights', href: '/ai/insights', icon: Sparkles, description: 'Anomalies & Forecasts' },
+    { name: 'Recommendations', href: '/ai/recommendations', icon: Lightbulb, description: 'AI Recommendations' },
+    { name: 'ChatOps', href: '/ai/chat', icon: MessageSquare, description: 'AI Assistant' },
+    { name: 'Reports', href: '/ai/reports', icon: FileText, description: 'Generate Reports' },
+  ];
+
+  const isAiActive = pathname?.startsWith('/ai');
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -56,6 +88,36 @@ export function Header() {
                 </Link>
               );
             })}
+            
+            {/* AI Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={isAiActive ? 'secondary' : 'ghost'}
+                  className={isAiActive ? 'bg-slate-700' : ''}
+                >
+                  <Brain className="mr-2 h-4 w-4 text-cyan-400" />
+                  AI
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {aiNavigation.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem key={item.name} asChild>
+                      <Link href={item.href} className="flex items-center gap-3 cursor-pointer">
+                        <Icon className="h-4 w-4 text-cyan-400" />
+                        <div>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-xs text-slate-400">{item.description}</div>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
         </div>
 
@@ -114,6 +176,27 @@ export function Header() {
                 </Link>
               );
             })}
+            
+            {/* AI Section */}
+            <div className="pt-2 border-t border-slate-700">
+              <p className="px-4 py-2 text-xs font-medium text-slate-500 uppercase">AI Features</p>
+              {aiNavigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link key={item.name} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                    <Button
+                      variant={isActive ? 'secondary' : 'ghost'}
+                      className="w-full justify-start"
+                    >
+                      <Icon className="mr-2 h-4 w-4 text-cyan-400" />
+                      {item.name}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
+            
             <div className="pt-2 border-t border-slate-700">
               <div className="flex items-center gap-2 px-4 py-2">
                 <User className="h-4 w-4 text-slate-400" />

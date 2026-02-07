@@ -120,3 +120,175 @@ model AuditLog {
   @@index([userId])
   @@index([timestamp])
 }
+
+// AI Models
+
+enum AnomalySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AnomalyType {
+  LAG_SPIKE
+  LATENCY_ANOMALY
+  ERROR_BURST
+  LOCK_CONTENTION
+  WAL_GROWTH
+  DISK_PRESSURE
+  CPU_SPIKE
+  CONNECTION_SURGE
+}
+
+enum RecommendationStatus {
+  PENDING
+  APPROVED
+  APPLIED
+  ROLLED_BACK
+  REJECTED
+}
+
+enum RecommendationType {
+  ROUTING_WEIGHT
+  LAG_THRESHOLD
+  HEALTH_CHECK
+  FAILOVER_SCORING
+  ADD_REPLICA
+  VACUUM_BLOAT
+  BACKUP_RETENTION
+  CONNECTION_POOLING
+}
+
+enum IncidentSeverity {
+  SEV1
+  SEV2
+  SEV3
+  SEV4
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+}
+
+model Anomaly {
+  id          String          @id @default(cuid())
+  clusterId   String
+  nodeId      String?
+  type        AnomalyType
+  severity    AnomalySeverity
+  title       String
+  description String          @db.Text
+  metricValue Float?
+  threshold   Float?
+  evidence    String?         @db.Text
+  resolved    Boolean         @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([clusterId])
+  @@index([createdAt])
+  @@index([severity])
+}
+
+model Forecast {
+  id           String   @id @default(cuid())
+  clusterId    String
+  metricType   String
+  currentValue Float
+  predictedValue Float
+  predictedAt  DateTime
+  confidence   Float
+  riskLevel    String
+  description  String   @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([clusterId])
+  @@index([metricType])
+}
+
+model Recommendation {
+  id            String               @id @default(cuid())
+  clusterId     String
+  type          RecommendationType
+  title         String
+  description   String               @db.Text
+  impact        String               @db.Text
+  risk          String
+  evidence      String?              @db.Text
+  currentValue  String?
+  proposedValue String?
+  status        RecommendationStatus @default(PENDING)
+  appliedAt     DateTime?
+  appliedBy     String?
+  rolledBackAt  DateTime?
+  rolledBackBy  String?
+  createdAt     DateTime             @default(now())
+
+  @@index([clusterId])
+  @@index([status])
+}
+
+model Incident {
+  id          String           @id @default(cuid())
+  clusterId   String
+  severity    IncidentSeverity
+  status      IncidentStatus   @default(OPEN)
+  title       String
+  description String           @db.Text
+  rootCause   String?          @db.Text
+  timeline    String?          @db.Text
+  actionItems String?          @db.Text
+  resolvedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([clusterId])
+  @@index([status])
+  @@index([severity])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  clusterId String?
+  role      String
+  content   String   @db.Text
+  toolCalls String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([clusterId])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  clusterId   String?
+  title       String
+  type        String
+  prompt      String?  @db.Text
+  content     String   @db.Text
+  data        String?  @db.Text
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@index([clusterId])
+  @@index([type])
+}
+
+model Metric {
+  id        String   @id @default(cuid())
+  clusterId String
+  nodeId    String?
+  name      String
+  value     Float
+  unit      String?
+  timestamp DateTime @default(now())
+
+  @@index([clusterId, name, timestamp])
+  @@index([nodeId, name, timestamp])
+}
