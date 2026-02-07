@@ -538,3 +538,137 @@ model ConnectionPool {
 
   @@index([clusterId])
 }
+
+// Phase 4: Query Performance Analytics
+
+model QueryStats {
+  id              String   @id @default(cuid())
+  clusterId       String
+  nodeId          String?
+  queryHash       String
+  queryText       String   @db.Text
+  calls           Int      @default(0)
+  totalTime       Float    @default(0)
+  minTime         Float    @default(0)
+  maxTime         Float    @default(0)
+  meanTime        Float    @default(0)
+  rows            BigInt   @default(0)
+  sharedBlksHit   BigInt   @default(0)
+  sharedBlksRead  BigInt   @default(0)
+  tempBlksWritten BigInt   @default(0)
+  firstSeen       DateTime @default(now())
+  lastSeen        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([clusterId, queryHash])
+  @@index([clusterId])
+  @@index([meanTime])
+  @@index([calls])
+}
+
+model SlowQuery {
+  id            String   @id @default(cuid())
+  clusterId     String
+  nodeId        String?
+  queryText     String   @db.Text
+  duration      Float
+  database      String?
+  username      String?
+  waitEvent     String?
+  state         String?
+  explainPlan   String?  @db.Text
+  suggestions   String?  @db.Text
+  capturedAt    DateTime @default(now())
+  analyzed      Boolean  @default(false)
+  analyzedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([clusterId])
+  @@index([duration])
+  @@index([capturedAt])
+}
+
+model IndexRecommendation {
+  id            String   @id @default(cuid())
+  clusterId     String
+  tableName     String
+  columnNames   String
+  indexType     String   @default("btree")
+  reason        String   @db.Text
+  estimatedGain Float?
+  ddlStatement  String?  @db.Text
+  status        String   @default("PENDING")
+  appliedAt     DateTime?
+  appliedBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([clusterId])
+  @@index([status])
+}
+
+// Phase 4: Replication Health
+
+model ReplicationSlot {
+  id              String   @id @default(cuid())
+  clusterId       String
+  nodeId          String
+  slotName        String
+  slotType        String
+  database        String?
+  active          Boolean  @default(false)
+  restartLsn      String?
+  confirmedFlushLsn String?
+  walStatus       String?
+  safeWalSize     BigInt?
+  retainedWal     BigInt?
+  catalogXmin     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([clusterId, slotName])
+  @@index([clusterId])
+  @@index([nodeId])
+}
+
+model ReplicationLag {
+  id              String   @id @default(cuid())
+  clusterId       String
+  nodeId          String
+  replayLag       Float?
+  writeLag        Float?
+  flushLag        Float?
+  sentLsn         String?
+  writeLsn        String?
+  flushLsn        String?
+  replayLsn       String?
+  walBytes        BigInt?
+  syncState       String?
+  syncPriority    Int?
+  timestamp       DateTime @default(now())
+
+  @@index([clusterId])
+  @@index([nodeId])
+  @@index([timestamp])
+}
+
+model WalActivity {
+  id              String   @id @default(cuid())
+  clusterId       String
+  nodeId          String
+  currentLsn      String
+  walWrite        BigInt   @default(0)
+  walSend         BigInt   @default(0)
+  archiveCount    Int      @default(0)
+  archiveFailed   Int      @default(0)
+  lastArchived    String?
+  lastArchivedAt  DateTime?
+  lastFailed      String?
+  lastFailedAt    DateTime?
+  timestamp       DateTime @default(now())
+
+  @@index([clusterId])
+  @@index([nodeId])
+  @@index([timestamp])
+}

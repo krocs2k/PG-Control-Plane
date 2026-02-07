@@ -28,6 +28,9 @@ import {
   Archive,
   Bell,
   Layers,
+  FileWarning,
+  BarChart3,
+  Radio,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -331,6 +334,24 @@ export default function ClusterDetailPage() {
             <Button variant="outline" className="gap-2">
               <Layers className="h-4 w-4" />
               Pools
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/incidents`}>
+            <Button variant="outline" className="gap-2">
+              <FileWarning className="h-4 w-4" />
+              Incidents
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/queries`}>
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Queries
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/replication`}>
+            <Button variant="outline" className="gap-2">
+              <Radio className="h-4 w-4" />
+              Replication
             </Button>
           </Link>
           <Link href={`/clusters/${clusterId}/failover`}>
