@@ -6,6 +6,39 @@ import { prisma } from '@/lib/db';
 const LLM_API_URL = 'https://routellm.abacus.ai/v1/chat/completions';
 const API_KEY = process.env.ABACUSAI_API_KEY;
 
+function parseJSONFromLLM(response: string): any {
+  // Remove markdown code blocks if present
+  let cleaned = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  
+  // Try to find JSON array
+  const arrayMatch = cleaned.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+  if (arrayMatch) {
+    try {
+      return JSON.parse(arrayMatch[0]);
+    } catch (e) {
+      console.error('Array parse error:', e);
+    }
+  }
+  
+  // Try to find JSON object
+  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch (e) {
+      console.error('Object parse error:', e);
+    }
+  }
+  
+  // Try parsing the whole response
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('Full parse error:', e);
+    return null;
+  }
+}
+
 async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
   const response = await fetch(LLM_API_URL, {
     method: 'POST',
@@ -80,8 +113,8 @@ ${clusters.map(c => `- ${c.name}: ${c.topology}, ${c.status}, ${c.nodes?.length 
 Evaluate against: CIS PostgreSQL Benchmark, SOC2 requirements, GDPR data protection, PCI-DSS (if applicable).`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -102,8 +135,8 @@ Clusters: ${clusters.map(c => c.name).join(', ')}
 Analyze for: privilege escalation risks, unused accounts, excessive permissions, separation of duties.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -119,8 +152,8 @@ ${auditLogs.map(l => `[${l.timestamp}] ${l.action} - ${l.entityType}/${l.entityI
 Look for: unusual access patterns, failed operations, bulk operations, off-hours activity, privilege changes.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -140,8 +173,8 @@ Recent Activity Volume: ${auditLogs.length} audit entries
 Evaluate: encryption status, access controls, network security, backup security, monitoring coverage, patch status (assumed).`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -161,8 +194,8 @@ ${clusters.map(c => `- ${c.name}: ${c.topology} topology, ${c.nodes?.length || 0
 Assume standard cloud pricing. Analyze: right-sizing opportunities, reserved instance candidates, topology optimization, replication overhead.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 

@@ -11,6 +11,7 @@ import {
   Eye,
   Calendar,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -146,6 +147,24 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function deleteReport(reportId: string) {
+    if (!confirm('Are you sure you want to delete this report?')) return;
+    try {
+      const res = await fetch(`/api/ai/reports?id=${reportId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setReports(prev => prev.filter(r => r.id !== reportId));
+        if (selectedReport?.id === reportId) {
+          setIsViewOpen(false);
+          setSelectedReport(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+    }
+  }
+
   const typeColors: Record<string, string> = {
     sla: 'bg-green-500/20 text-green-400',
     capacity: 'bg-blue-500/20 text-blue-400',
@@ -238,6 +257,14 @@ export default function ReportsPage() {
                       onClick={() => downloadReport(report)}
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteReport(report.id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </motion.div>

@@ -6,6 +6,39 @@ import { prisma } from '@/lib/db';
 const LLM_API_URL = 'https://routellm.abacus.ai/v1/chat/completions';
 const API_KEY = process.env.ABACUSAI_API_KEY;
 
+function parseJSONFromLLM(response: string): any {
+  // Remove markdown code blocks if present
+  let cleaned = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  
+  // Try to find JSON array
+  const arrayMatch = cleaned.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+  if (arrayMatch) {
+    try {
+      return JSON.parse(arrayMatch[0]);
+    } catch (e) {
+      console.error('Array parse error:', e);
+    }
+  }
+  
+  // Try to find JSON object
+  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch (e) {
+      console.error('Object parse error:', e);
+    }
+  }
+  
+  // Try parsing the whole response
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('Full parse error:', e);
+    return null;
+  }
+}
+
 async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
   const response = await fetch(LLM_API_URL, {
     method: 'POST',
@@ -74,8 +107,8 @@ Workload Type: ${workloadType || 'Mixed OLTP/OLAP'}
 Consider: security patches, performance improvements, new features, compatibility, LTS status.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -91,8 +124,8 @@ Workload Type: ${workloadType || 'General purpose'}
 Consider extensions for: monitoring (pg_stat_statements), partitioning, JSON handling, full-text search, connection pooling, replication monitoring, performance.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -109,8 +142,8 @@ Assumed Server Specs: 16 cores, 64GB RAM, NVMe storage
 Optimize: memory settings, WAL configuration, checkpoint settings, connection limits, parallel query settings, autovacuum tuning.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -127,8 +160,8 @@ Target: Latest stable version
 Consider: logical replication upgrade, pg_upgrade options, blue-green deployment, rollback strategies.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -142,8 +175,8 @@ ${infrastructureContext}
 Evaluate: topology choices, replication strategy, node distribution, failover capabilities, scalability potential, disaster recovery readiness.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
@@ -157,8 +190,8 @@ ${infrastructureContext}
 Cover: PostgreSQL roadmap, cloud-native developments, Kubernetes operators, observability tools, AI/ML integration, distributed SQL evolution.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 

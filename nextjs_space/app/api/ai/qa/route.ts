@@ -6,6 +6,39 @@ import { prisma } from '@/lib/db';
 const LLM_API_URL = 'https://routellm.abacus.ai/v1/chat/completions';
 const API_KEY = process.env.ABACUSAI_API_KEY;
 
+function parseJSONFromLLM(response: string): any {
+  // Remove markdown code blocks if present
+  let cleaned = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  
+  // Try to find JSON array
+  const arrayMatch = cleaned.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+  if (arrayMatch) {
+    try {
+      return JSON.parse(arrayMatch[0]);
+    } catch (e) {
+      console.error('Array parse error:', e);
+    }
+  }
+  
+  // Try to find JSON object
+  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch (e) {
+      console.error('Object parse error:', e);
+    }
+  }
+  
+  // Try parsing the whole response
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('Full parse error:', e);
+    return null;
+  }
+}
+
 async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
   const response = await fetch(LLM_API_URL, {
     method: 'POST',
@@ -76,9 +109,9 @@ Context: ${context || 'General cluster testing'}
 Generate 8-10 test cases covering: replication health, failover scenarios, performance benchmarks, data integrity, connection handling, and backup/recovery.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const parsed = parseJSONFromLLM(llmResponse);
         result = {
-          tests: jsonMatch ? JSON.parse(jsonMatch[0]) : [],
+          tests: Array.isArray(parsed) ? parsed : [],
           rawResponse: llmResponse,
         };
         break;
@@ -98,8 +131,8 @@ ${query}
 Provide detailed analysis including potential performance issues, index recommendations, and optimized version if applicable.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { analysis: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { analysis: llmResponse };
         break;
       }
 
@@ -115,9 +148,9 @@ Focus on: ${context || 'failover, replication lag, network partitions, resource 
 Generate 5-7 realistic test scenarios that would validate cluster resilience.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const parsed = parseJSONFromLLM(llmResponse);
         result = {
-          scenarios: jsonMatch ? JSON.parse(jsonMatch[0]) : [],
+          scenarios: Array.isArray(parsed) ? parsed : [],
           rawResponse: llmResponse,
         };
         break;
@@ -133,8 +166,8 @@ ${clusterContext}
 Check for: proper replication setup, node distribution, failover readiness, and configuration consistency.`;
         
         const llmResponse = await callLLM(systemPrompt, userPrompt);
-        const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
-        result = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: llmResponse };
+        const parsed = parseJSONFromLLM(llmResponse);
+        result = parsed || { summary: llmResponse };
         break;
       }
 
