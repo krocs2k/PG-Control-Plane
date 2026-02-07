@@ -47,7 +47,7 @@ const SUGGESTED_PROMPTS = [
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [selectedCluster, setSelectedCluster] = useState<string>('');
+  const [selectedCluster, setSelectedCluster] = useState<string>('none');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
@@ -111,7 +111,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           message: messageText,
           sessionId,
-          clusterId: selectedCluster || undefined,
+          clusterId: selectedCluster !== 'none' ? selectedCluster : undefined,
         }),
       });
 
@@ -190,7 +190,7 @@ export default function ChatPage() {
               <SelectValue placeholder="Select cluster context" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No cluster context</SelectItem>
+              <SelectItem value="none">No cluster context</SelectItem>
               {clusters.map(c => (
                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
@@ -208,7 +208,7 @@ export default function ChatPage() {
           <CardTitle className="text-lg flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-cyan-400" />
             Chat Session
-            {selectedCluster && (
+            {selectedCluster !== 'none' && (
               <span className="text-sm font-normal text-slate-400 ml-2">
                 Context: {clusters.find(c => c.id === selectedCluster)?.name}
               </span>
