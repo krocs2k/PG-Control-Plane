@@ -18,6 +18,13 @@ import {
   Plus,
   Pencil,
   Settings,
+  ArrowLeftRight,
+  GitBranch,
+  Power,
+  PowerOff,
+  Wrench,
+  AlertTriangle,
+  MoreVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +47,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Node {
   id: string;
@@ -90,6 +104,7 @@ export default function ClusterDetailPage() {
     status: 'OFFLINE',
   });
   const [savingNode, setSavingNode] = useState(false);
+  const [lifecycleLoading, setLifecycleLoading] = useState<string | null>(null);
 
   const clusterId = params?.id as string;
 
@@ -225,6 +240,33 @@ export default function ClusterDetailPage() {
     }
   }
 
+  async function handleNodeLifecycle(nodeId: string, action: string) {
+    setLifecycleLoading(nodeId);
+    try {
+      const res = await fetch('/api/node-lifecycle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodeId, action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (action === 'decommission') {
+          setCluster((prev) =>
+            prev ? { ...prev, nodes: prev.nodes.filter((n) => n.id !== nodeId) } : null
+          );
+        } else {
+          setCluster((prev) =>
+            prev ? { ...prev, nodes: prev.nodes.map((n) => (n.id === data.id ? { ...n, status: data.status } : n)) } : prev
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error executing lifecycle action:', error);
+    } finally {
+      setLifecycleLoading(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -269,10 +311,24 @@ export default function ClusterDetailPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" className="gap-2" onClick={openEditCluster}>
-          <Settings className="h-4 w-4" />
-          Edit Cluster
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href={`/clusters/${clusterId}/failover`}>
+            <Button variant="outline" className="gap-2">
+              <ArrowLeftRight className="h-4 w-4" />
+              Failover
+            </Button>
+          </Link>
+          <Link href={`/clusters/${clusterId}/routing`}>
+            <Button variant="outline" className="gap-2">
+              <GitBranch className="h-4 w-4" />
+              Routing
+            </Button>
+          </Link>
+          <Button variant="outline" className="gap-2" onClick={openEditCluster}>
+            <Settings className="h-4 w-4" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       {/* Cluster Info Cards */}
@@ -401,19 +457,39 @@ export default function ClusterDetailPage() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300"
-                        onClick={() => handleDeleteNode(primaryNode.id)}
-                        disabled={deleteNodeId === primaryNode.id}
-                      >
-                        {deleteNodeId === primaryNode.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={lifecycleLoading === primaryNode.id}>
+                            {lifecycleLoading === primaryNode.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <MoreVertical className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                          {primaryNode.status === 'ONLINE' && (
+                            <DropdownMenuItem onClick={() => handleNodeLifecycle(primaryNode.id, 'maintenance')}>
+                              <Wrench className="h-4 w-4 mr-2" />
+                              Maintenance Mode
+                            </DropdownMenuItem>
+                          )}
+                          {primaryNode.status === 'MAINTENANCE' && (
+                            <DropdownMenuItem onClick={() => handleNodeLifecycle(primaryNode.id, 'online')}>
+                              <Power className="h-4 w-4 mr-2" />
+                              Bring Online
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-400"
+                            onClick={() => handleDeleteNode(primaryNode.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove Node
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </motion.div>
@@ -452,19 +528,55 @@ export default function ClusterDetailPage() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300"
-                        onClick={() => handleDeleteNode(node.id)}
-                        disabled={deleteNodeId === node.id}
-                      >
-                        {deleteNodeId === node.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={lifecycleLoading === node.id}>
+                            {lifecycleLoading === node.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <MoreVertical className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                          {node.status === 'ONLINE' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleNodeLifecycle(node.id, 'drain')}>
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                Drain Connections
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleNodeLifecycle(node.id, 'maintenance')}>
+                                <Wrench className="h-4 w-4 mr-2" />
+                                Maintenance Mode
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleNodeLifecycle(node.id, 'offline')}>
+                                <PowerOff className="h-4 w-4 mr-2" />
+                                Take Offline
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {node.status === 'DRAINING' && (
+                            <DropdownMenuItem disabled>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Draining...
+                            </DropdownMenuItem>
+                          )}
+                          {(node.status === 'MAINTENANCE' || node.status === 'OFFLINE') && (
+                            <DropdownMenuItem onClick={() => handleNodeLifecycle(node.id, 'online')}>
+                              <Power className="h-4 w-4 mr-2" />
+                              Bring Online
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-400"
+                            onClick={() => handleNodeLifecycle(node.id, 'decommission')}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Decommission
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </motion.div>

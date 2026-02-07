@@ -93,16 +93,86 @@ model Cluster {
 }
 
 model Node {
-  id        String     @id @default(cuid())
-  name      String
-  host      String
-  port      Int
-  role      NodeRole   @default(REPLICA)
-  status    NodeStatus @default(OFFLINE)
-  clusterId String
-  cluster   Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  name          String
+  host          String
+  port          Int
+  role          NodeRole   @default(REPLICA)
+  status        NodeStatus @default(OFFLINE)
+  routingWeight Int        @default(100)
+  priority      Int        @default(1)
+  clusterId     String
+  cluster       Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+enum FailoverStatus {
+  PENDING
+  PRE_CHECK
+  IN_PROGRESS
+  VALIDATING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum FailoverType {
+  PLANNED
+  EMERGENCY
+  AUTOMATED
+}
+
+model FailoverOperation {
+  id              String         @id @default(cuid())
+  clusterId       String
+  type            FailoverType   @default(PLANNED)
+  status          FailoverStatus @default(PENDING)
+  sourceNodeId    String
+  targetNodeId    String
+  reason          String?
+  preChecks       String?        @db.Text
+  steps           String?        @db.Text
+  errorMessage    String?        @db.Text
+  startedAt       DateTime?
+  completedAt     DateTime?
+  rolledBackAt    DateTime?
+  initiatedBy     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([clusterId])
+  @@index([status])
+}
+
+model RoutingConfig {
+  id              String   @id @default(cuid())
+  clusterId       String   @unique
+  readWriteSplit  Boolean  @default(true)
+  primaryWeight   Int      @default(100)
+  replicaWeights  String?  @db.Text
+  healthThreshold Int      @default(80)
+  lagThreshold    Int      @default(100)
+  connectionLimit Int      @default(1000)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clusterId])
+}
+
+model NodeLifecycleEvent {
+  id          String   @id @default(cuid())
+  nodeId      String
+  clusterId   String
+  eventType   String
+  fromStatus  String?
+  toStatus    String
+  details     String?  @db.Text
+  initiatedBy String?
+  createdAt   DateTime @default(now())
+
+  @@index([nodeId])
+  @@index([clusterId])
 }
 
 model AuditLog {
