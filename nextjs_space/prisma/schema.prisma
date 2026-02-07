@@ -1,0 +1,122 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/pg_cluster_control_plane/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+enum Environment {
+  DEV
+  STAGING
+  PROD
+}
+
+enum ClusterStatus {
+  PROVISIONING
+  HEALTHY
+  DEGRADED
+  MAINTENANCE
+}
+
+enum ReplicationMode {
+  SYNC
+  ASYNC
+}
+
+enum NodeRole {
+  PRIMARY
+  REPLICA
+}
+
+enum NodeStatus {
+  ONLINE
+  OFFLINE
+  DRAINING
+  MAINTENANCE
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  users     User[]
+  projects  Project[]
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String?
+  role         UserRole     @default(VIEWER)
+  orgId        String?
+  organization Organization? @relation(fields: [orgId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model Project {
+  id           String       @id @default(cuid())
+  name         String
+  environment  Environment  @default(DEV)
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clusters     Cluster[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Cluster {
+  id              String          @id @default(cuid())
+  name            String
+  topology        String          @default("standard")
+  status          ClusterStatus   @default(PROVISIONING)
+  replicationMode ReplicationMode @default(ASYNC)
+  projectId       String
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nodes           Node[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Node {
+  id        String     @id @default(cuid())
+  name      String
+  host      String
+  port      Int
+  role      NodeRole   @default(REPLICA)
+  status    NodeStatus @default(OFFLINE)
+  clusterId String
+  cluster   Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  entityType  String
+  entityId    String
+  action      String
+  beforeState String?  @db.Text
+  afterState  String?  @db.Text
+  timestamp   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([timestamp])
+}
