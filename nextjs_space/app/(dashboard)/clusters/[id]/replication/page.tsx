@@ -116,6 +116,10 @@ export default function ReplicationPage() {
   const [selectedNode, setSelectedNode] = useState<string>('none');
   const [showCreateSlot, setShowCreateSlot] = useState(false);
   const [newSlotName, setNewSlotName] = useState('');
+  const [newSlotType, setNewSlotType] = useState<'physical' | 'logical'>('physical');
+  const [newSlotDatabase, setNewSlotDatabase] = useState('');
+  const [creatingSlot, setCreatingSlot] = useState(false);
+  const [slotError, setSlotError] = useState<string | null>(null);
   const [replicationMode, setReplicationMode] = useState<string>('ASYNC');
 
   useEffect(() => {
@@ -178,36 +182,92 @@ export default function ReplicationPage() {
   };
 
   const createSlot = async () => {
-    if (!newSlotName || selectedNode === 'none') return;
+    if (!newSlotName) {
+      setSlotError('Slot name is required');
+      return;
+    }
+    
+    // Validate slot name format
+    if (!/^[a-z_][a-z0-9_]*$/.test(newSlotName)) {
+      setSlotError('Slot name must start with a letter or underscore and contain only lowercase letters, numbers, and underscores');
+      return;
+    }
+    
+    if (newSlotType === 'logical' && !newSlotDatabase) {
+      setSlotError('Database is required for logical replication slots');
+      return;
+    }
+
+    setCreatingSlot(true);
+    setSlotError(null);
+    
     try {
-      await fetch('/api/replication', {
+      const res = await fetch('/api/replication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clusterId,
           action: 'create_slot',
-          nodeId: selectedNode,
+          nodeId: selectedNode !== 'none' ? selectedNode : undefined,
           slotName: newSlotName,
+          slotType: newSlotType,
+          database: newSlotType === 'logical' ? newSlotDatabase : undefined,
+          outputPlugin: newSlotType === 'logical' ? 'pgoutput' : undefined,
         }),
       });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setSlotError(data.details || data.error || 'Failed to create replication slot');
+        return;
+      }
+      
       setShowCreateSlot(false);
       setNewSlotName('');
+      setNewSlotType('physical');
+      setNewSlotDatabase('');
+      setSlotError(null);
       fetchData();
     } catch (error) {
       console.error('Error creating slot:', error);
+      setSlotError((error as Error).message || 'Network error occurred');
+    } finally {
+      setCreatingSlot(false);
     }
   };
 
+  const [droppingSlot, setDroppingSlot] = useState<string | null>(null);
+  const [dropSlotError, setDropSlotError] = useState<string | null>(null);
+  
   const dropSlot = async (slotName: string) => {
+    if (!confirm(`Are you sure you want to drop the replication slot "${slotName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setDroppingSlot(slotName);
+    setDropSlotError(null);
+    
     try {
-      await fetch('/api/replication', {
+      const res = await fetch('/api/replication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clusterId, action: 'drop_slot', slotName }),
       });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setDropSlotError(data.details || data.error || 'Failed to drop replication slot');
+        return;
+      }
+      
       fetchData();
     } catch (error) {
       console.error('Error dropping slot:', error);
+      setDropSlotError((error as Error).message || 'Network error occurred');
+    } finally {
+      setDroppingSlot(null);
     }
   };
 
@@ -437,7 +497,17 @@ export default function ReplicationPage() {
         </TabsContent>
 
         <TabsContent value="slots" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            {dropSlotError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <p className="text-red-400 text-sm">{dropSlotError}</p>
+                <Button variant="ghost" size="sm" onClick={() => setDropSlotError(null)} className="h-6 w-6 p-0 ml-2">
+                  ×
+                </Button>
+              </div>
+            )}
+            <div className="flex-1" />
             <Button onClick={() => setShowCreateSlot(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Slot
@@ -500,8 +570,13 @@ export default function ReplicationPage() {
                         size="sm"
                         className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                         onClick={() => dropSlot(slot.slotName)}
+                        disabled={droppingSlot === slot.slotName}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {droppingSlot === slot.slotName ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </CardContent>
@@ -591,44 +666,110 @@ export default function ReplicationPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={showCreateSlot} onOpenChange={setShowCreateSlot}>
+      <Dialog open={showCreateSlot} onOpenChange={(open) => {
+        setShowCreateSlot(open);
+        if (!open) {
+          setSlotError(null);
+          setNewSlotName('');
+          setNewSlotType('physical');
+          setNewSlotDatabase('');
+        }
+      }}>
         <DialogContent className="bg-slate-800 border-slate-700">
           <DialogHeader>
             <DialogTitle className="text-white">Create Replication Slot</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Create a new physical replication slot for a replica node
+              Create a replication slot on the primary node for streaming replication
             </DialogDescription>
           </DialogHeader>
+          
+          {slotError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-red-400 text-sm">{slotError}</p>
+            </div>
+          )}
+          
           <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Slot Type</Label>
+              <Select value={newSlotType} onValueChange={(v: 'physical' | 'logical') => setNewSlotType(v)}>
+                <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="physical">Physical (Streaming Replication)</SelectItem>
+                  <SelectItem value="logical">Logical (Change Data Capture)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                {newSlotType === 'physical' 
+                  ? 'Used for streaming replication to standby servers' 
+                  : 'Used for logical replication and CDC applications'}
+              </p>
+            </div>
+            
             <div>
               <Label className="text-slate-300">Slot Name</Label>
               <Input
                 value={newSlotName}
-                onChange={(e) => setNewSlotName(e.target.value)}
-                placeholder="replica_slot_name"
+                onChange={(e) => setNewSlotName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                placeholder="replica_slot_1"
                 className="bg-slate-700 border-slate-600"
               />
+              <p className="text-xs text-slate-500 mt-1">
+                Lowercase letters, numbers, and underscores only
+              </p>
             </div>
-            <div>
-              <Label className="text-slate-300">Target Node</Label>
-              <Select value={selectedNode} onValueChange={setSelectedNode}>
-                <SelectTrigger className="bg-slate-700 border-slate-600">
-                  <SelectValue placeholder="Select replica node" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  {replicaNodes.map(node => (
-                    <SelectItem key={node.id} value={node.id}>
-                      {node.name} ({node.host}:{node.port})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            
+            {newSlotType === 'logical' && (
+              <div>
+                <Label className="text-slate-300">Database</Label>
+                <Input
+                  value={newSlotDatabase}
+                  onChange={(e) => setNewSlotDatabase(e.target.value)}
+                  placeholder="postgres"
+                  className="bg-slate-700 border-slate-600"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Database to replicate (required for logical slots)
+                </p>
+              </div>
+            )}
+            
+            {replicaNodes.length > 0 && (
+              <div>
+                <Label className="text-slate-300">Associate with Node (Optional)</Label>
+                <Select value={selectedNode} onValueChange={setSelectedNode}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                    <SelectValue placeholder="Select replica node" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="none">No specific node</SelectItem>
+                    {replicaNodes.map(node => (
+                      <SelectItem key={node.id} value={node.id}>
+                        {node.name} ({node.host}:{node.port})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateSlot(false)}>Cancel</Button>
-            <Button onClick={createSlot} disabled={!newSlotName || selectedNode === 'none'}>
-              Create Slot
+            <Button variant="outline" onClick={() => setShowCreateSlot(false)} disabled={creatingSlot}>
+              Cancel
+            </Button>
+            <Button onClick={createSlot} disabled={!newSlotName || creatingSlot}>
+              {creatingSlot ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Slot'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
