@@ -32,13 +32,10 @@ import {
   BarChart3,
   Radio,
   Link2,
-  Shield,
   CheckCircle2,
   XCircle,
   RefreshCw,
   Copy,
-  Eye,
-  EyeOff,
   Plug,
   GitMerge,
 } from 'lucide-react';
@@ -136,12 +133,8 @@ export default function ClusterDetailPage() {
   const [nodeForm, setNodeForm] = useState({
     name: '',
     connectionString: '',
-    dbUser: '',
-    dbPassword: '',
     role: 'REPLICA',
     status: 'OFFLINE',
-    sslEnabled: true,
-    sslMode: 'require',
     syncEnabled: false,
     replicationEnabled: true,
   });
@@ -152,7 +145,6 @@ export default function ClusterDetailPage() {
     error?: string;
     pgVersion?: string;
   } | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const [lifecycleLoading, setLifecycleLoading] = useState<string | null>(null);
   const [syncingNode, setSyncingNode] = useState<string | null>(null);
 
@@ -219,17 +211,12 @@ export default function ClusterDetailPage() {
     setNodeForm({
       name: '',
       connectionString: '',
-      dbUser: '',
-      dbPassword: '',
       role: 'REPLICA',
       status: 'OFFLINE',
-      sslEnabled: true,
-      sslMode: 'require',
       syncEnabled: false,
       replicationEnabled: true,
     });
     setConnectionTestResult(null);
-    setShowPassword(false);
     setIsNodeDialogOpen(true);
   }
 
@@ -238,17 +225,12 @@ export default function ClusterDetailPage() {
     setNodeForm({
       name: node.name,
       connectionString: node.connectionString || `postgresql://${node.host}:${node.port}`,
-      dbUser: node.dbUser || '',
-      dbPassword: '',
       role: node.role,
       status: node.status,
-      sslEnabled: node.sslEnabled ?? true,
-      sslMode: node.sslMode || 'require',
       syncEnabled: node.syncEnabled ?? false,
       replicationEnabled: node.replicationEnabled ?? true,
     });
     setConnectionTestResult(null);
-    setShowPassword(false);
     setIsNodeDialogOpen(true);
   }
 
@@ -258,30 +240,28 @@ export default function ClusterDetailPage() {
     setConnectionTestResult(null);
 
     try {
-      // Build a test connection string with credentials
-      let testConnStr = nodeForm.connectionString;
-      if (nodeForm.dbUser && nodeForm.dbPassword) {
-        // Parse and rebuild with credentials
-        const urlMatch = testConnStr.match(/^(postgres(?:ql)?:\/\/)(?:[^@]+@)?(.*)$/);
-        if (urlMatch) {
-          testConnStr = `${urlMatch[1]}${encodeURIComponent(nodeForm.dbUser)}:${encodeURIComponent(nodeForm.dbPassword)}@${urlMatch[2]}`;
-        }
-      }
+      // Validate connection string format
+      const connStr = nodeForm.connectionString.trim();
+      const hasCredentials = connStr.includes('@');
+      const isValidFormat = connStr.startsWith('postgresql://') || connStr.startsWith('postgres://');
 
       // Simulate connection test for demo
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      // Check if URL looks valid
-      const isValid = testConnStr.includes('@') || (nodeForm.dbUser && nodeForm.dbPassword);
-      if (isValid) {
+      if (!isValidFormat) {
         setConnectionTestResult({
-          success: true,
-          pgVersion: '15.4',
+          success: false,
+          error: 'Invalid format. Connection string must start with postgresql:// or postgres://',
+        });
+      } else if (!hasCredentials) {
+        setConnectionTestResult({
+          success: false,
+          error: 'Authentication required. Include credentials in connection string: postgresql://user:password@host:port/database',
         });
       } else {
         setConnectionTestResult({
-          success: false,
-          error: 'Authentication credentials required. Please provide username and password.',
+          success: true,
+          pgVersion: '15.4',
         });
       }
     } catch (error) {
@@ -296,10 +276,13 @@ export default function ClusterDetailPage() {
 
   async function handleSaveNode() {
     if (!nodeForm.name || !nodeForm.connectionString) return;
-    if (!nodeForm.dbUser || (!editingNode && !nodeForm.dbPassword)) {
+    
+    // Validate connection string has credentials
+    const connStr = nodeForm.connectionString.trim();
+    if (!connStr.includes('@')) {
       setConnectionTestResult({
         success: false,
-        error: 'Database username and password are required for authentication.',
+        error: 'Connection string must include authentication credentials (user:password@host)',
       });
       return;
     }
@@ -313,12 +296,8 @@ export default function ClusterDetailPage() {
           body: JSON.stringify({
             name: nodeForm.name,
             connectionString: nodeForm.connectionString,
-            dbUser: nodeForm.dbUser,
-            dbPassword: nodeForm.dbPassword || undefined,
             role: nodeForm.role,
             status: nodeForm.status,
-            sslEnabled: nodeForm.sslEnabled,
-            sslMode: nodeForm.sslMode,
             syncEnabled: nodeForm.syncEnabled,
             replicationEnabled: nodeForm.replicationEnabled,
           }),
@@ -1114,88 +1093,20 @@ export default function ClusterDetailPage() {
             {/* Connection String */}
             <div className="space-y-2">
               <Label htmlFor="connection-string" className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
+                <Database className="h-4 w-4 text-cyan-400" />
                 Connection String
               </Label>
               <Textarea
                 id="connection-string"
-                placeholder="postgresql://host:5432/database?sslmode=require"
+                placeholder="postgresql://username:password@hostname:5432/database?sslmode=require"
                 value={nodeForm.connectionString}
                 onChange={(e) => setNodeForm({ ...nodeForm, connectionString: e.target.value })}
-                className="font-mono text-sm"
+                className="font-mono text-sm bg-slate-800/50 border-slate-600"
                 rows={2}
               />
-              <p className="text-xs text-slate-500">
-                Format: postgresql://[user:password@]host:port[/database][?sslmode=require]
+              <p className="text-xs text-slate-400">
+                Include authentication in the connection string: <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-400">postgresql://user:password@host:port/database</code>
               </p>
-            </div>
-
-            {/* Authentication */}
-            <div className="p-4 rounded-lg border border-slate-700 bg-slate-800/30 space-y-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-cyan-400" />
-                <Label className="text-sm font-medium">Database Authentication</Label>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="db-user">Username</Label>
-                  <Input
-                    id="db-user"
-                    placeholder="postgres"
-                    value={nodeForm.dbUser}
-                    onChange={(e) => setNodeForm({ ...nodeForm, dbUser: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="db-password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="db-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder={editingNode ? '(unchanged)' : 'Enter password'}
-                      value={nodeForm.dbPassword}
-                      onChange={(e) => setNodeForm({ ...nodeForm, dbPassword: e.target.value })}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="ssl-enabled"
-                    checked={nodeForm.sslEnabled}
-                    onCheckedChange={(checked) => setNodeForm({ ...nodeForm, sslEnabled: checked })}
-                  />
-                  <Label htmlFor="ssl-enabled" className="text-sm">SSL Enabled</Label>
-                </div>
-                {nodeForm.sslEnabled && (
-                  <Select
-                    value={nodeForm.sslMode}
-                    onValueChange={(val) => setNodeForm({ ...nodeForm, sslMode: val })}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="disable">disable</SelectItem>
-                      <SelectItem value="allow">allow</SelectItem>
-                      <SelectItem value="prefer">prefer</SelectItem>
-                      <SelectItem value="require">require</SelectItem>
-                      <SelectItem value="verify-ca">verify-ca</SelectItem>
-                      <SelectItem value="verify-full">verify-full</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
             </div>
 
             {/* Test Connection Result */}
@@ -1308,7 +1219,7 @@ export default function ClusterDetailPage() {
               </Button>
               <Button
                 onClick={handleSaveNode}
-                disabled={savingNode || !nodeForm.name || !nodeForm.connectionString || !nodeForm.dbUser}
+                disabled={savingNode || !nodeForm.name || !nodeForm.connectionString}
               >
                 {savingNode && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 {editingNode ? 'Save Changes' : 'Add Node'}
