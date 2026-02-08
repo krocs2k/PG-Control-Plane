@@ -349,11 +349,25 @@ export default function ClusterDetailPage() {
         });
         if (res.ok) {
           const updated = await res.json();
-          setCluster((prev) =>
-            prev
-              ? { ...prev, nodes: prev.nodes.map((n) => (n.id === updated.id ? updated : n)) }
-              : prev
-          );
+          const demotedNodes: string[] = updated.demotedNodes || [];
+          
+          setCluster((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              nodes: prev.nodes.map((n) => {
+                // Update the edited node
+                if (n.id === updated.id) {
+                  return { ...updated, demotedNodes: undefined };
+                }
+                // Demote any old primaries that were changed to replica
+                if (demotedNodes.includes(n.id)) {
+                  return { ...n, role: 'REPLICA' };
+                }
+                return n;
+              }),
+            };
+          });
           setIsNodeDialogOpen(false);
         } else {
           const err = await res.json();

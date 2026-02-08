@@ -157,6 +157,30 @@ export async function PUT(
     if (name !== undefined) updateData.name = name;
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
+
+    // If promoting to PRIMARY, demote any existing PRIMARY nodes in the cluster
+    let demotedNodes: string[] = [];
+    if (role === 'PRIMARY' && existingNode.role !== 'PRIMARY') {
+      const existingPrimaries = await prisma.node.findMany({
+        where: {
+          clusterId: existingNode.clusterId,
+          role: 'PRIMARY',
+          id: { not: id },
+        },
+      });
+
+      if (existingPrimaries.length > 0) {
+        await prisma.node.updateMany({
+          where: {
+            clusterId: existingNode.clusterId,
+            role: 'PRIMARY',
+            id: { not: id },
+          },
+          data: { role: 'REPLICA' },
+        });
+        demotedNodes = existingPrimaries.map(n => n.id);
+      }
+    }
     if (syncEnabled !== undefined) {
       updateData.syncEnabled = syncEnabled;
       updateData.syncStatus = syncEnabled ? 'PENDING' : 'NOT_CONFIGURED';
@@ -196,13 +220,14 @@ export async function PUT(
       afterState: { ...updatedNode, dbPassword: '[REDACTED]', connectionString: '[REDACTED]' },
     });
 
-    // Return sanitized node
+    // Return sanitized node with demoted nodes info
     return NextResponse.json({
       ...updatedNode,
       dbPassword: updatedNode.dbPassword ? '***' : null,
       connectionString: updatedNode.connectionString
         ? maskConnectionString(updatedNode.connectionString)
         : null,
+      demotedNodes, // IDs of nodes that were demoted to REPLICA
     });
   } catch (error) {
     console.error('Error updating node:', error);
