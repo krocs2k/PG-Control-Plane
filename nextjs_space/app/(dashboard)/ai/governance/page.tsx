@@ -24,6 +24,7 @@ export default function GovernancePage() {
   const [loading, setLoading] = useState(false);
   const [activeScan, setActiveScan] = useState<ScanType | null>(null);
   const [scanResults, setScanResults] = useState<Record<string, any>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/clusters')
@@ -35,6 +36,7 @@ export default function GovernancePage() {
   const runScan = async (scanType: ScanType) => {
     setLoading(true);
     setActiveScan(scanType);
+    setError(null);
     try {
       const response = await fetch('/api/ai/governance', {
         method: 'POST',
@@ -45,11 +47,19 @@ export default function GovernancePage() {
         }),
       });
       
-      if (!response.ok) throw new Error('Scan failed');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Scan failed with status ${response.status}`);
+      }
       const result = await response.json();
+      if (result.error) {
+        throw new Error(result.error);
+      }
       setScanResults(prev => ({ ...prev, [scanType]: result }));
-    } catch (error) {
-      console.error('Governance scan error:', error);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      console.error('Governance scan error:', err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
       setActiveScan(null);
@@ -133,6 +143,16 @@ export default function GovernancePage() {
           </SelectContent>
         </Select>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-red-400 font-medium">Error</p>
+            <p className="text-red-300 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {scanCards.map(scan => {

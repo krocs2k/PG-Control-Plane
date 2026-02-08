@@ -26,6 +26,7 @@ export default function TechScoutPage() {
   const [workloadType, setWorkloadType] = useState('mixed');
   
   const [results, setResults] = useState<Record<string, any>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/clusters')
@@ -36,6 +37,7 @@ export default function TechScoutPage() {
 
   const runAction = async (action: string) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/ai/tech-scout', {
         method: 'POST',
@@ -48,11 +50,19 @@ export default function TechScoutPage() {
         }),
       });
       
-      if (!response.ok) throw new Error('Request failed');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Request failed with status ${response.status}`);
+      }
       const result = await response.json();
+      if (result.error) {
+        throw new Error(result.error);
+      }
       setResults(prev => ({ ...prev, [action]: result }));
-    } catch (error) {
-      console.error('Tech Scout error:', error);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      console.error('Tech Scout error:', err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -134,6 +144,16 @@ export default function TechScoutPage() {
           </Select>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-red-400 font-medium">Error</p>
+            <p className="text-red-300 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-slate-800">
