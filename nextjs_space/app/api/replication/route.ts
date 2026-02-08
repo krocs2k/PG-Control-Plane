@@ -182,7 +182,7 @@ export async function GET(request: Request) {
         nodes: cluster.nodes.map(n => ({
           ...n,
           connectionString: n.connectionString ? n.connectionString.replace(/:([^@]+)@/, ':***@') : null,
-          dbPasswordHash: n.dbPasswordHash ? '***' : null,
+          dbPassword: n.dbPassword ? '***' : null,
         })),
         slots: replicationData.slots,
         lag: replicationData.lag,

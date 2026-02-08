@@ -6,7 +6,6 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { createAuditLog } from '@/lib/audit';
 import { hasPermission } from '@/lib/types';
-import bcrypt from 'bcryptjs';
 import {
   parseConnectionString,
   buildConnectionString,
@@ -49,7 +48,7 @@ export async function GET(request: Request) {
     // Mask sensitive data
     const sanitizedNodes = nodes.map((node) => ({
       ...node,
-      dbPasswordHash: node.dbPasswordHash ? '***' : null,
+      dbPassword: node.dbPassword ? '***' : null,
       connectionString: node.connectionString
         ? node.connectionString.replace(/:([^@]+)@/, ':***@')
         : null,
@@ -148,9 +147,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Hash the password for storage
-    const passwordHash = await bcrypt.hash(finalPassword, 10);
-
+    // Store password directly (needed for database connections)
     const node = await prisma.node.create({
       data: {
         name,
@@ -159,7 +156,7 @@ export async function POST(request: Request) {
         port: parsed.port,
         connectionString: fullConnectionString,
         dbUser: finalUser,
-        dbPasswordHash: passwordHash,
+        dbPassword: finalPassword,
         sslEnabled: sslEnabled !== false,
         sslMode: sslMode || parsed.sslMode || 'require',
         role: role || 'REPLICA',
@@ -179,13 +176,13 @@ export async function POST(request: Request) {
       entityType: 'Node',
       entityId: node.id,
       action: 'CREATE',
-      afterState: { ...node, dbPasswordHash: '[REDACTED]', connectionString: '[REDACTED]' },
+      afterState: { ...node, dbPassword: '[REDACTED]', connectionString: '[REDACTED]' },
     });
 
     // Return sanitized node
     return NextResponse.json({
       ...node,
-      dbPasswordHash: '***',
+      dbPassword: '***',
       connectionString: fullConnectionString.replace(/:([^@]+)@/, ':***@'),
     });
   } catch (error) {
