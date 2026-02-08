@@ -138,6 +138,9 @@ export default function DBAdminPage() {
               setMfaNotSetup(true);
             }
             setShowMfaPrompt(true);
+            setCheckingMfa(false);
+            setLoading(false); // Stop loading, show MFA prompt
+            return; // Exit early - don't fetch credentials yet
           } else {
             // Fallback: allow access if response doesn't have expected fields
             allowed = true;
@@ -212,6 +215,22 @@ export default function DBAdminPage() {
           setShowMfaVerify(false);
           setMfaToken('');
           toast.success('MFA verified successfully');
+          // Fetch credentials after successful MFA verification
+          try {
+            const credRes = await fetch('/api/admin/credentials');
+            if (credRes.ok) {
+              const credData = await credRes.json();
+              setCredential(credData.credential);
+              setPropagations(credData.propagations || []);
+              setNodes(credData.nodes || []);
+              setAlerts(credData.alerts || []);
+            }
+          } catch (credError) {
+            console.error('Error fetching credentials:', credError);
+            toast.error('Failed to fetch credentials');
+          } finally {
+            setLoading(false);
+          }
         }
       } else {
         const error = await res.json();
