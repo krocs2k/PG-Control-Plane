@@ -374,7 +374,7 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// DELETE - Delete user (Admin only)
+// DELETE - Delete user(s) (Admin only) - supports single and mass delete
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -392,7 +392,76 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const idsParam = searchParams.get('ids'); // For mass delete: comma-separated IDs
 
+    // Mass delete
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'No user IDs provided' }, { status: 400 });
+      }
+
+      // Fetch all target users
+      const targetUsers = await prisma.user.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, email: true, role: true },
+      });
+
+      if (targetUsers.length === 0) {
+        return NextResponse.json({ error: 'No users found' }, { status: 404 });
+      }
+
+      // Validate each user
+      const errors: string[] = [];
+      const validIds: string[] = [];
+      const deletedEmails: string[] = [];
+
+      for (const user of targetUsers) {
+        // Prevent self-deletion
+        if (user.id === currentUser.id) {
+          errors.push(`Cannot delete yourself (${user.email})`);
+          continue;
+        }
+        // Prevent deleting owner unless done by owner
+        if (user.role === 'OWNER' && currentUser.role !== 'OWNER') {
+          errors.push(`Cannot delete owner (${user.email})`);
+          continue;
+        }
+        validIds.push(user.id);
+        deletedEmails.push(user.email);
+      }
+
+      if (validIds.length === 0) {
+        return NextResponse.json({ 
+          error: 'No users could be deleted', 
+          details: errors 
+        }, { status: 400 });
+      }
+
+      // Delete valid users
+      const deleteResult = await prisma.user.deleteMany({
+        where: { id: { in: validIds } },
+      });
+
+      await createAuditLog({
+        userId: currentUser.id,
+        action: 'USERS_MASS_DELETED',
+        entityType: 'User',
+        entityId: validIds.join(','),
+        beforeState: { emails: deletedEmails, deletedBy: currentUser.email },
+        afterState: { count: deleteResult.count },
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: `${deleteResult.count} user(s) deleted`,
+        deleted: deleteResult.count,
+        skipped: errors.length,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    }
+
+    // Single delete (backwards compatible)
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }

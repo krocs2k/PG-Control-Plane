@@ -25,6 +25,9 @@ import {
   Copy,
   Smartphone,
   QrCode,
+  CheckSquare,
+  Square,
+  MinusSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -184,6 +187,11 @@ export default function UserAdminPage() {
     status: 'ACTIVE',
   });
   const [newPassword, setNewPassword] = useState('');
+  
+  // Mass delete state
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [showMassDeleteDialog, setShowMassDeleteDialog] = useState(false);
+  const [massDeleteResult, setMassDeleteResult] = useState<{ deleted: number; skipped: number; errors?: string[] } | null>(null);
   
   // MFA Settings state
   const [mfaSettings, setMfaSettings] = useState<MFASettings | null>(null);
@@ -375,6 +383,47 @@ export default function UserAdminPage() {
     }
   };
 
+  const massDeleteUsers = async () => {
+    if (selectedUsers.size === 0) return;
+    try {
+      setActionLoading(true);
+      const ids = Array.from(selectedUsers).join(',');
+      const res = await fetch(`/api/admin/users?ids=${ids}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMassDeleteResult({
+          deleted: data.deleted || 0,
+          skipped: data.skipped || 0,
+          errors: data.errors,
+        });
+        setSelectedUsers(new Set());
+        fetchUsers();
+      } else {
+        alert(data.error || 'Failed to delete users');
+        setShowMassDeleteDialog(false);
+      }
+    } catch (error) {
+      console.error('Error mass deleting users:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
   const performUserAction = async (userId: string, action: string, extra?: Record<string, unknown>) => {
     try {
       setActionLoading(true);
@@ -463,6 +512,17 @@ export default function UserAdminPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === filteredUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
+    }
+  };
+
+  const isAllSelected = filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length;
+  const isSomeSelected = selectedUsers.size > 0 && selectedUsers.size < filteredUsers.length;
+
   const stats = {
     total: users.length,
     active: users.filter((u) => u.status === 'ACTIVE').length,
@@ -487,6 +547,19 @@ export default function UserAdminPage() {
             <p className="text-slate-400 mt-1">Manage users, roles, and MFA settings</p>
           </div>
           <div className="flex gap-3">
+            {selectedUsers.size > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setMassDeleteResult(null);
+                  setShowMassDeleteDialog(true);
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedUsers.size})
+              </Button>
+            )}
             <Button variant="outline" onClick={setupMFA} className="border-slate-600">
               <Smartphone className="h-4 w-4 mr-2" />
               Setup My MFA
@@ -707,6 +780,21 @@ export default function UserAdminPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-700">
+                      <th className="text-left py-3 px-4 text-slate-400 font-medium w-10">
+                        <button
+                          onClick={toggleSelectAll}
+                          className="flex items-center justify-center hover:text-white transition-colors"
+                          title={isAllSelected ? 'Deselect all' : 'Select all'}
+                        >
+                          {isAllSelected ? (
+                            <CheckSquare className="h-5 w-5 text-blue-400" />
+                          ) : isSomeSelected ? (
+                            <MinusSquare className="h-5 w-5 text-blue-400" />
+                          ) : (
+                            <Square className="h-5 w-5" />
+                          )}
+                        </button>
+                      </th>
                       <th className="text-left py-3 px-4 text-slate-400 font-medium">User</th>
                       <th className="text-left py-3 px-4 text-slate-400 font-medium">Role</th>
                       <th className="text-left py-3 px-4 text-slate-400 font-medium">Status</th>
@@ -718,7 +806,19 @@ export default function UserAdminPage() {
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => (
-                      <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                      <tr key={user.id} className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${selectedUsers.has(user.id) ? 'bg-slate-700/40' : ''}`}>
+                        <td className="py-3 px-4">
+                          <button
+                            onClick={() => toggleUserSelection(user.id)}
+                            className="flex items-center justify-center hover:text-white transition-colors"
+                          >
+                            {selectedUsers.has(user.id) ? (
+                              <CheckSquare className="h-5 w-5 text-blue-400" />
+                            ) : (
+                              <Square className="h-5 w-5 text-slate-500 hover:text-slate-300" />
+                            )}
+                          </button>
+                        </td>
                         <td className="py-3 px-4">
                           <div>
                             <p className="text-white font-medium">{user.name || 'Unnamed'}</p>
@@ -1292,6 +1392,101 @@ export default function UserAdminPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Mass Delete Confirmation Dialog */}
+        <AlertDialog open={showMassDeleteDialog} onOpenChange={(open) => {
+          if (!open) {
+            setMassDeleteResult(null);
+          }
+          setShowMassDeleteDialog(open);
+        }}>
+          <AlertDialogContent className="bg-slate-800 border-slate-700 max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+                {massDeleteResult ? 'Mass Delete Complete' : 'Confirm Mass Delete'}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400">
+                {massDeleteResult ? (
+                  <div className="space-y-3 mt-2">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>{massDeleteResult.deleted} user(s) successfully deleted</span>
+                    </div>
+                    {massDeleteResult.skipped > 0 && (
+                      <div className="flex items-center gap-2 text-amber-400">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>{massDeleteResult.skipped} user(s) skipped</span>
+                      </div>
+                    )}
+                    {massDeleteResult.errors && massDeleteResult.errors.length > 0 && (
+                      <div className="mt-3 p-3 bg-slate-700/50 rounded-lg">
+                        <p className="text-sm text-slate-300 mb-2">Skipped reasons:</p>
+                        <ul className="text-sm text-amber-300 space-y-1">
+                          {massDeleteResult.errors.map((err, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-amber-500">•</span>
+                              {err}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3 mt-2">
+                    <p>
+                      Are you sure you want to delete <strong className="text-white">{selectedUsers.size} user(s)</strong>? 
+                      This action cannot be undone.
+                    </p>
+                    <div className="p-3 bg-slate-700/50 rounded-lg max-h-40 overflow-y-auto">
+                      <p className="text-sm text-slate-300 mb-2">Selected users:</p>
+                      <div className="space-y-1">
+                        {filteredUsers.filter(u => selectedUsers.has(u.id)).map(user => (
+                          <div key={user.id} className="text-sm flex items-center gap-2">
+                            <Badge className={`${roleColors[user.role]} border text-xs`}>
+                              {user.role}
+                            </Badge>
+                            <span className="text-slate-300">{user.email}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Note: You cannot delete yourself or owners (unless you are an owner).
+                    </p>
+                  </div>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              {massDeleteResult ? (
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowMassDeleteDialog(false);
+                    setMassDeleteResult(null);
+                  }} 
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Done
+                </AlertDialogAction>
+              ) : (
+                <>
+                  <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={massDeleteUsers}
+                    disabled={actionLoading}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {actionLoading ? 'Deleting...' : `Delete ${selectedUsers.size} User(s)`}
+                  </AlertDialogAction>
+                </>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </div>
   );
