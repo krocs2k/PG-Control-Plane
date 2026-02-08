@@ -107,7 +107,8 @@ export default function DBAdminPage() {
   const [confirmPropagate, setConfirmPropagate] = useState(false);
 
   // MFA Gate state
-  const [mfaRequired, setMfaRequired] = useState<boolean | null>(null);
+  const [checkingMfa, setCheckingMfa] = useState(true);
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaVerified, setMfaVerified] = useState(false);
   const [showMfaPrompt, setShowMfaPrompt] = useState(false);
   const [showMfaVerify, setShowMfaVerify] = useState(false);
@@ -125,23 +126,55 @@ export default function DBAdminPage() {
           body: JSON.stringify({ action: 'check_db_admin_access' }),
         });
         
+        let allowed = false;
+        
         if (res.ok) {
           const data = await res.json();
           if (data.allowed) {
-            setMfaRequired(false);
-            setMfaVerified(true);
+            allowed = true;
           } else if (data.mfaRequired) {
             setMfaRequired(true);
             if (data.mfaNotSetup) {
               setMfaNotSetup(true);
             }
             setShowMfaPrompt(true);
+          } else {
+            // Fallback: allow access if response doesn't have expected fields
+            allowed = true;
+          }
+        } else {
+          // Non-OK response (401, 403, etc.) - allow access and let credentials API handle auth
+          console.warn('MFA check returned non-OK status:', res.status);
+          allowed = true;
+        }
+        
+        setCheckingMfa(false);
+        
+        if (allowed) {
+          setMfaVerified(true);
+          // Fetch credentials immediately
+          try {
+            const credRes = await fetch('/api/admin/credentials');
+            if (credRes.ok) {
+              const credData = await credRes.json();
+              setCredential(credData.credential);
+              setPropagations(credData.propagations || []);
+              setNodes(credData.nodes || []);
+              setAlerts(credData.alerts || []);
+            }
+          } catch (credError) {
+            console.error('Error fetching credentials:', credError);
+            toast.error('Failed to fetch credentials');
+          } finally {
+            setLoading(false);
           }
         }
       } catch (error) {
         console.error('Error checking MFA access:', error);
         // Allow access if MFA check fails
+        setCheckingMfa(false);
         setMfaVerified(true);
+        setLoading(false);
       }
     };
 
@@ -209,12 +242,6 @@ export default function DBAdminPage() {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    if (mfaVerified) {
-      fetchCredentials();
-    }
-  }, [fetchCredentials, mfaVerified]);
 
   const initializeCredentials = async () => {
     setActionLoading('initialize');
@@ -400,7 +427,7 @@ END
 docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER pg_control_plane WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${currentPassword}' " 2>/dev/null || docker exec -it <postgres_container_name> psql -U postgres -c "ALTER USER pg_control_plane WITH PASSWORD '${currentPassword}'"`;
 
   // Show loading while checking MFA or loading credentials
-  if (loading || mfaRequired === null) {
+  if (checkingMfa || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
