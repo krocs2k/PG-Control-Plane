@@ -21,6 +21,12 @@ import {
   Wifi,
   WifiOff,
   ArrowRightLeft,
+  Shield,
+  Settings,
+  Wrench,
+  Copy,
+  UserPlus,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,6 +107,28 @@ interface LagHistoryPoint {
   flushLag: number;
 }
 
+interface DiagnosticIssue {
+  code: string;
+  message: string;
+  severity: 'error' | 'warning';
+  canAutoFix: boolean;
+  fixCommand?: string;
+}
+
+interface Diagnostics {
+  canCreateSlots: boolean;
+  issues: DiagnosticIssue[];
+  config: {
+    walLevel: string;
+    maxReplicationSlots: number;
+    maxWalSenders: number;
+    currentUser: string;
+    hasReplicationPrivilege: boolean;
+    isSuperuser: boolean;
+    existingSlots: number;
+  } | null;
+}
+
 export default function ReplicationPage() {
   const params = useParams();
   const router = useRouter();
@@ -121,6 +149,15 @@ export default function ReplicationPage() {
   const [creatingSlot, setCreatingSlot] = useState(false);
   const [slotError, setSlotError] = useState<string | null>(null);
   const [replicationMode, setReplicationMode] = useState<string>('ASYNC');
+  
+  // Diagnostics state
+  const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
+  const [applyingFix, setApplyingFix] = useState<string | null>(null);
+  const [fixResult, setFixResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
+  const [newUsername, setNewUsername] = useState('replication_user');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -271,6 +308,127 @@ export default function ReplicationPage() {
     }
   };
 
+  // Diagnostic functions
+  const fetchDiagnostics = async () => {
+    setLoadingDiagnostics(true);
+    setFixResult(null);
+    try {
+      const res = await fetch(`/api/replication?clusterId=${clusterId}&type=diagnostics`);
+      const data = await res.json();
+      setDiagnostics(data);
+    } catch (error) {
+      console.error('Error fetching diagnostics:', error);
+    } finally {
+      setLoadingDiagnostics(false);
+    }
+  };
+
+  const applyFix = async (issueCode: string) => {
+    setApplyingFix(issueCode);
+    setFixResult(null);
+    
+    try {
+      let action = '';
+      let body: Record<string, unknown> = { clusterId };
+      
+      switch (issueCode) {
+        case 'NO_REPLICATION_PRIVILEGE':
+          action = 'grant_replication';
+          break;
+        case 'WAL_LEVEL_MINIMAL':
+          action = 'apply_config';
+          body.walLevel = 'replica';
+          break;
+        case 'NO_REPLICATION_SLOTS':
+        case 'SLOTS_EXHAUSTED':
+          action = 'apply_config';
+          body.maxReplicationSlots = 10;
+          break;
+        case 'NO_WAL_SENDERS':
+          action = 'apply_config';
+          body.maxWalSenders = 10;
+          break;
+        default:
+          setFixResult({ success: false, message: 'Unknown issue type' });
+          return;
+      }
+      
+      body.action = action;
+      
+      const res = await fetch('/api/replication', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setFixResult({ success: false, message: data.details || data.error || 'Failed to apply fix' });
+        return;
+      }
+      
+      setFixResult({ 
+        success: true, 
+        message: data.message || (data.requiresRestart 
+          ? 'Configuration applied. Please restart PostgreSQL for changes to take effect.'
+          : 'Fix applied successfully!')
+      });
+      
+      // Refresh diagnostics
+      await fetchDiagnostics();
+    } catch (error) {
+      setFixResult({ success: false, message: (error as Error).message });
+    } finally {
+      setApplyingFix(null);
+    }
+  };
+
+  const createReplicationUser = async () => {
+    if (!newUsername || !newPassword) return;
+    
+    setApplyingFix('CREATE_USER');
+    setFixResult(null);
+    
+    try {
+      const res = await fetch('/api/replication', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clusterId,
+          action: 'create_replication_user',
+          username: newUsername,
+          password: newPassword,
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setFixResult({ success: false, message: data.details || data.error || 'Failed to create user' });
+        return;
+      }
+      
+      setFixResult({ 
+        success: true, 
+        message: `User "${newUsername}" created with REPLICATION privilege. Update your node's connection string to use this user.`
+      });
+      setShowCreateUserDialog(false);
+      setNewPassword('');
+      
+      // Refresh diagnostics
+      await fetchDiagnostics();
+    } catch (error) {
+      setFixResult({ success: false, message: (error as Error).message });
+    } finally {
+      setApplyingFix(null);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
   const formatBytes = (bytes: string | number) => {
     const num = typeof bytes === 'string' ? parseInt(bytes) : bytes;
     if (num >= 1073741824) return `${(num / 1073741824).toFixed(2)} GB`;
@@ -394,6 +552,9 @@ export default function ReplicationPage() {
           </TabsTrigger>
           <TabsTrigger value="wal" className="data-[state=active]:bg-slate-700">
             <TrendingUp className="h-4 w-4 mr-2" />WAL Activity
+          </TabsTrigger>
+          <TabsTrigger value="diagnostics" className="data-[state=active]:bg-slate-700" onClick={() => !diagnostics && fetchDiagnostics()}>
+            <Shield className="h-4 w-4 mr-2" />Diagnostics
           </TabsTrigger>
         </TabsList>
 
@@ -664,7 +825,262 @@ export default function ReplicationPage() {
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="diagnostics" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Replication Prerequisites</h3>
+              <p className="text-sm text-slate-400">Check if your PostgreSQL server is configured for replication</p>
+            </div>
+            <Button onClick={fetchDiagnostics} disabled={loadingDiagnostics}>
+              {loadingDiagnostics ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Run Diagnostics
+                </>
+              )}
+            </Button>
+          </div>
+
+          {fixResult && (
+            <div className={`rounded-lg p-4 flex items-start gap-3 ${
+              fixResult.success 
+                ? 'bg-green-500/10 border border-green-500/30' 
+                : 'bg-red-500/10 border border-red-500/30'
+            }`}>
+              {fixResult.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+              )}
+              <p className={fixResult.success ? 'text-green-400' : 'text-red-400'}>{fixResult.message}</p>
+            </div>
+          )}
+
+          {diagnostics ? (
+            <div className="grid grid-cols-2 gap-4">
+              {/* Status Card */}
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg flex items-center gap-2">
+                    {diagnostics.canCreateSlots ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-400" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-red-400" />
+                    )}
+                    Overall Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${diagnostics.canCreateSlots ? 'text-green-400' : 'text-red-400'}`}>
+                    {diagnostics.canCreateSlots ? 'Ready for Replication' : 'Configuration Required'}
+                  </div>
+                  <p className="text-slate-400 mt-2">
+                    {diagnostics.issues.filter(i => i.severity === 'error').length} errors, {' '}
+                    {diagnostics.issues.filter(i => i.severity === 'warning').length} warnings
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Config Card */}
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-cyan-400" />
+                    Current Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {diagnostics.config ? (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-slate-500">User</p>
+                        <p className="text-white font-mono">{diagnostics.config.currentUser}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">WAL Level</p>
+                        <p className={`font-mono ${diagnostics.config.walLevel === 'minimal' ? 'text-red-400' : 'text-green-400'}`}>
+                          {diagnostics.config.walLevel}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Replication Slots</p>
+                        <p className="text-white">{diagnostics.config.existingSlots} / {diagnostics.config.maxReplicationSlots}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">WAL Senders</p>
+                        <p className="text-white">{diagnostics.config.maxWalSenders}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Has Replication</p>
+                        <Badge className={diagnostics.config.hasReplicationPrivilege ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
+                          {diagnostics.config.hasReplicationPrivilege ? 'Yes' : 'No'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Is Superuser</p>
+                        <Badge className={diagnostics.config.isSuperuser ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-500/20 text-slate-400'}>
+                          {diagnostics.config.isSuperuser ? 'Yes' : 'No'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-400">No configuration data available</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Issues Card */}
+              <Card className="bg-slate-800/50 border-slate-700 col-span-2">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white text-lg">Issues & Fixes</CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Problems detected and available solutions
+                    </CardDescription>
+                  </div>
+                  {!diagnostics.config?.isSuperuser && diagnostics.issues.some(i => i.code === 'NO_REPLICATION_PRIVILEGE') && (
+                    <Button variant="outline" onClick={() => setShowCreateUserDialog(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Create Replication User
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {diagnostics.issues.length === 0 ? (
+                    <div className="text-center py-8">
+                      <CheckCircle2 className="h-12 w-12 mx-auto text-green-400 mb-4" />
+                      <p className="text-green-400 font-medium">All checks passed!</p>
+                      <p className="text-slate-400 text-sm mt-1">Your database is ready for replication</p>
+                    </div>
+                  ) : (
+                    diagnostics.issues.map((issue, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`rounded-lg p-4 ${
+                          issue.severity === 'error' 
+                            ? 'bg-red-500/10 border border-red-500/30' 
+                            : 'bg-yellow-500/10 border border-yellow-500/30'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            {issue.severity === 'error' ? (
+                              <XCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
+                            )}
+                            <div>
+                              <p className={issue.severity === 'error' ? 'text-red-400 font-medium' : 'text-yellow-400 font-medium'}>
+                                {issue.message}
+                              </p>
+                              {issue.fixCommand && (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <code className="text-xs bg-slate-700 px-2 py-1 rounded font-mono text-slate-300">
+                                    {issue.fixCommand}
+                                  </code>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => copyToClipboard(issue.fixCommand!)}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {diagnostics.config?.isSuperuser && issue.code !== 'NO_REPLICATION_PRIVILEGE' && (
+                            <Button
+                              size="sm"
+                              onClick={() => applyFix(issue.code)}
+                              disabled={applyingFix === issue.code}
+                            >
+                              {applyingFix === issue.code ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Wrench className="h-4 w-4 mr-1" />
+                                  Auto-Fix
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="py-12 text-center">
+                <Shield className="h-12 w-12 mx-auto text-slate-600 mb-4" />
+                <p className="text-slate-400">Click &quot;Run Diagnostics&quot; to check replication prerequisites</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
       </Tabs>
+
+      {/* Create Replication User Dialog */}
+      <Dialog open={showCreateUserDialog} onOpenChange={setShowCreateUserDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Create Replication User</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Create a dedicated PostgreSQL user with REPLICATION privilege
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300">Username</Label>
+              <Input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                placeholder="replication_user"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Password</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter a strong password"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <p className="text-blue-400 text-sm">
+                <strong>Note:</strong> This requires superuser privileges on the primary database. 
+                After creation, update your node&apos;s connection string to use this new user.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateUserDialog(false)}>Cancel</Button>
+            <Button onClick={createReplicationUser} disabled={!newUsername || !newPassword || applyingFix === 'CREATE_USER'}>
+              {applyingFix === 'CREATE_USER' ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create User'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showCreateSlot} onOpenChange={(open) => {
         setShowCreateSlot(open);

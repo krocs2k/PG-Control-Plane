@@ -753,6 +753,309 @@ export async function setupStreamingReplication(
   }
 }
 
+// Check replication prerequisites on a database
+export async function checkReplicationPrerequisites(connectionString: string): Promise<{
+  canCreateSlots: boolean;
+  issues: Array<{
+    code: string;
+    message: string;
+    severity: 'error' | 'warning';
+    canAutoFix: boolean;
+    fixCommand?: string;
+  }>;
+  config: {
+    walLevel: string;
+    maxReplicationSlots: number;
+    maxWalSenders: number;
+    currentUser: string;
+    hasReplicationPrivilege: boolean;
+    isSuperuser: boolean;
+    existingSlots: number;
+  };
+}> {
+  const pool = getPool(connectionString);
+  const issues: Array<{
+    code: string;
+    message: string;
+    severity: 'error' | 'warning';
+    canAutoFix: boolean;
+    fixCommand?: string;
+  }> = [];
+  
+  try {
+    // Get current user info
+    const userResult = await pool.query(`
+      SELECT 
+        current_user as username,
+        usesuper as is_superuser,
+        userepl as has_replication
+      FROM pg_user 
+      WHERE usename = current_user
+    `);
+    
+    const currentUser = userResult.rows[0]?.username || 'unknown';
+    const isSuperuser = userResult.rows[0]?.is_superuser || false;
+    const hasReplicationPrivilege = userResult.rows[0]?.has_replication || false;
+    
+    // Get PostgreSQL settings
+    const settingsResult = await pool.query(`
+      SELECT name, setting 
+      FROM pg_settings 
+      WHERE name IN ('wal_level', 'max_replication_slots', 'max_wal_senders')
+    `);
+    
+    const settings: Record<string, string> = {};
+    settingsResult.rows.forEach(row => {
+      settings[row.name] = row.setting;
+    });
+    
+    const walLevel = settings['wal_level'] || 'minimal';
+    const maxReplicationSlots = parseInt(settings['max_replication_slots'] || '0');
+    const maxWalSenders = parseInt(settings['max_wal_senders'] || '0');
+    
+    // Count existing slots
+    const slotsResult = await pool.query('SELECT count(*) FROM pg_replication_slots');
+    const existingSlots = parseInt(slotsResult.rows[0]?.count || '0');
+    
+    // Check issues
+    if (!hasReplicationPrivilege && !isSuperuser) {
+      issues.push({
+        code: 'NO_REPLICATION_PRIVILEGE',
+        message: `User "${currentUser}" does not have REPLICATION privilege`,
+        severity: 'error',
+        canAutoFix: isSuperuser, // Can only auto-fix if we're superuser (which we're not if this triggers)
+        fixCommand: `ALTER USER ${currentUser} REPLICATION;`,
+      });
+    }
+    
+    if (walLevel === 'minimal') {
+      issues.push({
+        code: 'WAL_LEVEL_MINIMAL',
+        message: 'wal_level is set to "minimal". Physical replication requires "replica" or higher.',
+        severity: 'error',
+        canAutoFix: false,
+        fixCommand: `ALTER SYSTEM SET wal_level = 'replica'; -- Requires PostgreSQL restart`,
+      });
+    }
+    
+    if (maxReplicationSlots === 0) {
+      issues.push({
+        code: 'NO_REPLICATION_SLOTS',
+        message: 'max_replication_slots is 0. No replication slots can be created.',
+        severity: 'error',
+        canAutoFix: false,
+        fixCommand: `ALTER SYSTEM SET max_replication_slots = 10; -- Requires PostgreSQL restart`,
+      });
+    } else if (existingSlots >= maxReplicationSlots) {
+      issues.push({
+        code: 'SLOTS_EXHAUSTED',
+        message: `All replication slots are in use (${existingSlots}/${maxReplicationSlots})`,
+        severity: 'error',
+        canAutoFix: false,
+        fixCommand: `ALTER SYSTEM SET max_replication_slots = ${maxReplicationSlots + 5}; -- Requires restart`,
+      });
+    }
+    
+    if (maxWalSenders === 0) {
+      issues.push({
+        code: 'NO_WAL_SENDERS',
+        message: 'max_wal_senders is 0. No streaming replication connections allowed.',
+        severity: 'error',
+        canAutoFix: false,
+        fixCommand: `ALTER SYSTEM SET max_wal_senders = 10; -- Requires PostgreSQL restart`,
+      });
+    }
+    
+    // Warnings
+    if (maxReplicationSlots > 0 && existingSlots >= maxReplicationSlots - 2) {
+      issues.push({
+        code: 'LOW_SLOTS',
+        message: `Only ${maxReplicationSlots - existingSlots} replication slots remaining`,
+        severity: 'warning',
+        canAutoFix: false,
+      });
+    }
+    
+    return {
+      canCreateSlots: issues.filter(i => i.severity === 'error').length === 0,
+      issues,
+      config: {
+        walLevel,
+        maxReplicationSlots,
+        maxWalSenders,
+        currentUser,
+        hasReplicationPrivilege,
+        isSuperuser,
+        existingSlots,
+      },
+    };
+  } catch (error) {
+    const err = error as Error;
+    return {
+      canCreateSlots: false,
+      issues: [{
+        code: 'CONNECTION_ERROR',
+        message: `Failed to check prerequisites: ${err.message}`,
+        severity: 'error',
+        canAutoFix: false,
+      }],
+      config: {
+        walLevel: 'unknown',
+        maxReplicationSlots: 0,
+        maxWalSenders: 0,
+        currentUser: 'unknown',
+        hasReplicationPrivilege: false,
+        isSuperuser: false,
+        existingSlots: 0,
+      },
+    };
+  }
+}
+
+// Grant replication privilege to a user (requires superuser)
+export async function grantReplicationPrivilege(
+  connectionString: string,
+  username: string
+): Promise<{ success: boolean; error?: string }> {
+  const pool = getPool(connectionString);
+  
+  try {
+    // Check if current user is superuser
+    const checkResult = await pool.query('SELECT usesuper FROM pg_user WHERE usename = current_user');
+    if (!checkResult.rows[0]?.usesuper) {
+      return {
+        success: false,
+        error: 'Current user is not a superuser. Cannot grant REPLICATION privilege.',
+      };
+    }
+    
+    // Grant replication privilege
+    await pool.query(`ALTER USER ${username} REPLICATION`);
+    
+    return { success: true };
+  } catch (error) {
+    const err = error as Error;
+    return {
+      success: false,
+      error: err.message,
+    };
+  }
+}
+
+// Create a replication user with all necessary privileges
+export async function createReplicationUser(
+  connectionString: string,
+  username: string,
+  password: string
+): Promise<{ success: boolean; error?: string; connectionString?: string }> {
+  const pool = getPool(connectionString);
+  
+  try {
+    // Check if current user is superuser
+    const checkResult = await pool.query('SELECT usesuper FROM pg_user WHERE usename = current_user');
+    if (!checkResult.rows[0]?.usesuper) {
+      return {
+        success: false,
+        error: 'Current user is not a superuser. Cannot create replication user.',
+      };
+    }
+    
+    // Check if user already exists
+    const existsResult = await pool.query('SELECT 1 FROM pg_user WHERE usename = $1', [username]);
+    if (existsResult.rows.length > 0) {
+      // User exists, just grant replication
+      await pool.query(`ALTER USER ${username} REPLICATION PASSWORD '${password}'`);
+    } else {
+      // Create new user with replication privilege
+      await pool.query(`CREATE USER ${username} WITH REPLICATION LOGIN PASSWORD '${password}'`);
+    }
+    
+    // Build new connection string
+    const parsed = parseConnectionString(connectionString);
+    if (parsed) {
+      const newConnStr = buildConnectionString(
+        parsed.host,
+        parsed.port,
+        parsed.database,
+        username,
+        password,
+        parsed.sslMode
+      );
+      return { success: true, connectionString: newConnStr };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    const err = error as Error;
+    return {
+      success: false,
+      error: err.message,
+    };
+  }
+}
+
+// Apply configuration changes (requires superuser, changes need restart)
+export async function applyReplicationConfig(
+  connectionString: string,
+  config: {
+    walLevel?: 'replica' | 'logical';
+    maxReplicationSlots?: number;
+    maxWalSenders?: number;
+  }
+): Promise<{ success: boolean; error?: string; requiresRestart: boolean; applied: string[] }> {
+  const pool = getPool(connectionString);
+  const applied: string[] = [];
+  
+  try {
+    // Check if current user is superuser
+    const checkResult = await pool.query('SELECT usesuper FROM pg_user WHERE usename = current_user');
+    if (!checkResult.rows[0]?.usesuper) {
+      return {
+        success: false,
+        error: 'Current user is not a superuser. Cannot modify PostgreSQL configuration.',
+        requiresRestart: false,
+        applied: [],
+      };
+    }
+    
+    if (config.walLevel) {
+      await pool.query(`ALTER SYSTEM SET wal_level = '${config.walLevel}'`);
+      applied.push(`wal_level = '${config.walLevel}'`);
+    }
+    
+    if (config.maxReplicationSlots !== undefined) {
+      await pool.query(`ALTER SYSTEM SET max_replication_slots = ${config.maxReplicationSlots}`);
+      applied.push(`max_replication_slots = ${config.maxReplicationSlots}`);
+    }
+    
+    if (config.maxWalSenders !== undefined) {
+      await pool.query(`ALTER SYSTEM SET max_wal_senders = ${config.maxWalSenders}`);
+      applied.push(`max_wal_senders = ${config.maxWalSenders}`);
+    }
+    
+    // Reload configuration (won't apply wal_level changes, but will apply some settings)
+    try {
+      await pool.query('SELECT pg_reload_conf()');
+    } catch {
+      // Ignore reload errors
+    }
+    
+    return {
+      success: true,
+      requiresRestart: applied.length > 0, // These settings require restart
+      applied,
+    };
+  } catch (error) {
+    const err = error as Error;
+    return {
+      success: false,
+      error: err.message,
+      requiresRestart: false,
+      applied,
+    };
+  }
+}
+
 // Get database statistics
 export async function getDatabaseStats(connectionString: string): Promise<{
   databaseSize: number;

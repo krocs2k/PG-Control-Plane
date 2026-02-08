@@ -12,6 +12,11 @@ import {
   createReplicationSlot,
   dropReplicationSlot,
   testConnection,
+  checkReplicationPrerequisites,
+  grantReplicationPrivilege,
+  createReplicationUser,
+  applyReplicationConfig,
+  parseConnectionString,
 } from '@/lib/postgres';
 
 // Parse LSN to bytes for lag calculation
@@ -271,6 +276,41 @@ export async function GET(request: Request) {
       }
     }
 
+    if (type === 'diagnostics') {
+      if (!primaryNode?.connectionString) {
+        return NextResponse.json({ 
+          error: 'No primary node with connection string found',
+          canCreateSlots: false,
+          issues: [{
+            code: 'NO_PRIMARY',
+            message: 'No primary node configured with a connection string',
+            severity: 'error',
+            canAutoFix: false,
+          }],
+          config: null,
+        });
+      }
+
+      try {
+        const diagnostics = await checkReplicationPrerequisites(primaryNode.connectionString);
+        return NextResponse.json(diagnostics);
+      } catch (error) {
+        console.error('Error checking diagnostics:', error);
+        return NextResponse.json({ 
+          error: 'Failed to check diagnostics', 
+          details: (error as Error).message,
+          canCreateSlots: false,
+          issues: [{
+            code: 'DIAGNOSTIC_ERROR',
+            message: (error as Error).message,
+            severity: 'error',
+            canAutoFix: false,
+          }],
+          config: null,
+        }, { status: 500 });
+      }
+    }
+
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
   } catch (error) {
     console.error('Error fetching replication data:', error);
@@ -388,6 +428,110 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ success: true, droppedOnPrimary: true });
+    }
+
+    if (action === 'grant_replication') {
+      // Grant REPLICATION privilege to current user
+      const parsed = parseConnectionString(primaryNode.connectionString);
+      if (!parsed?.user) {
+        return NextResponse.json({ error: 'Could not determine username from connection string' }, { status: 400 });
+      }
+
+      const result = await grantReplicationPrivilege(primaryNode.connectionString, parsed.user);
+      
+      if (!result.success) {
+        return NextResponse.json({ 
+          error: 'Failed to grant REPLICATION privilege', 
+          details: result.error 
+        }, { status: 400 });
+      }
+
+      await createAuditLog({
+        userId: session.user.id,
+        entityType: 'Node',
+        entityId: primaryNode.id,
+        action: 'UPDATE',
+        afterState: { granted: 'REPLICATION', user: parsed.user },
+      });
+
+      return NextResponse.json({ success: true, user: parsed.user });
+    }
+
+    if (action === 'create_replication_user') {
+      const { username, password } = body;
+      
+      if (!username || !password) {
+        return NextResponse.json({ error: 'username and password are required' }, { status: 400 });
+      }
+
+      const result = await createReplicationUser(primaryNode.connectionString, username, password);
+      
+      if (!result.success) {
+        return NextResponse.json({ 
+          error: 'Failed to create replication user', 
+          details: result.error 
+        }, { status: 400 });
+      }
+
+      await createAuditLog({
+        userId: session.user.id,
+        entityType: 'Node',
+        entityId: primaryNode.id,
+        action: 'CREATE',
+        afterState: { createdUser: username, hasReplication: true },
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        username,
+        connectionString: result.connectionString 
+          ? result.connectionString.replace(/:([^@]+)@/, ':***@') 
+          : null,
+      });
+    }
+
+    if (action === 'apply_config') {
+      const { walLevel, maxReplicationSlots, maxWalSenders } = body;
+      
+      const configToApply: {
+        walLevel?: 'replica' | 'logical';
+        maxReplicationSlots?: number;
+        maxWalSenders?: number;
+      } = {};
+      
+      if (walLevel) configToApply.walLevel = walLevel;
+      if (maxReplicationSlots !== undefined) configToApply.maxReplicationSlots = maxReplicationSlots;
+      if (maxWalSenders !== undefined) configToApply.maxWalSenders = maxWalSenders;
+
+      if (Object.keys(configToApply).length === 0) {
+        return NextResponse.json({ error: 'No configuration changes specified' }, { status: 400 });
+      }
+
+      const result = await applyReplicationConfig(primaryNode.connectionString, configToApply);
+      
+      if (!result.success) {
+        return NextResponse.json({ 
+          error: 'Failed to apply configuration', 
+          details: result.error 
+        }, { status: 400 });
+      }
+
+      await createAuditLog({
+        userId: session.user.id,
+        entityType: 'Node',
+        entityId: primaryNode.id,
+        action: 'UPDATE',
+        afterState: { appliedConfig: result.applied, requiresRestart: result.requiresRestart },
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        applied: result.applied,
+        requiresRestart: result.requiresRestart,
+        message: result.requiresRestart 
+          ? 'Configuration applied. PostgreSQL restart required for changes to take effect.'
+          : 'Configuration applied successfully.',
+      });
     }
 
     if (action === 'record_metrics') {
