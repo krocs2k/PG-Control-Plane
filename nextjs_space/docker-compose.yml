@@ -2,12 +2,17 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.postgres
+    image: pg-control-plane-postgres:16
     container_name: pg-control-plane-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: pg_control_plane
+      # Set this to define pg_control_plane password (auto-generated if not set)
+      PG_CONTROL_PLANE_PASSWORD: ${PG_CONTROL_PLANE_PASSWORD:-}
     ports:
       - '5432:5432'
     volumes:

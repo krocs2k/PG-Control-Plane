@@ -1,0 +1,13 @@
+# Custom PostgreSQL image with pg_control_plane user auto-creation
+FROM postgres:16-alpine
+
+# Install openssl for password generation
+RUN apk add --no-cache openssl
+
+# Copy custom entrypoint script
+COPY postgres-entrypoint.sh /usr/local/bin/pg-control-plane-entrypoint.sh
+RUN chmod +x /usr/local/bin/pg-control-plane-entrypoint.sh
+
+# Use custom entrypoint
+ENTRYPOINT ["pg-control-plane-entrypoint.sh"]
+CMD ["postgres"]
