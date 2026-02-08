@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
 import { Database, Mail, Lock, Loader2, Shield, KeyRound, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -210,14 +210,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {!mfaRequired && (
-          <div className="mt-6 text-center text-sm text-slate-400">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-cyan-400 hover:text-cyan-300 font-medium">
-              Sign up
-            </Link>
-          </div>
-        )}
+
       </CardContent>
     </Card>
   );
