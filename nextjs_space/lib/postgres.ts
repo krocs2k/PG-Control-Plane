@@ -625,9 +625,11 @@ export async function syncData(
         ORDER BY ordinal_position
       `, [table.schema, table.name]);
       
-      const columns = columnsResult.rows.map(r => `"${r.column_name}"`);
+      // Store raw column names for row access and quoted names for SQL
+      const columnNames = columnsResult.rows.map(r => r.column_name as string);
+      const quotedColumns = columnNames.map(c => `"${c}"`);
       
-      if (columns.length === 0) continue;
+      if (columnNames.length === 0) continue;
       
       // Optionally truncate target table
       if (options.truncateTarget) {
@@ -640,7 +642,7 @@ export async function syncData(
       let hasMore = true;
       
       while (hasMore) {
-        const selectQuery = `SELECT ${columns.join(', ')} FROM ${fullTableName} LIMIT ${batchSize} OFFSET ${offset}`;
+        const selectQuery = `SELECT ${quotedColumns.join(', ')} FROM ${fullTableName} LIMIT ${batchSize} OFFSET ${offset}`;
         const dataResult = await sourcePool.query(selectQuery);
         
         if (dataResult.rows.length === 0) {
@@ -650,12 +652,13 @@ export async function syncData(
         
         // Build INSERT statement
         const placeholders = dataResult.rows.map((_, rowIdx) => 
-          `(${columns.map((_, colIdx) => `$${rowIdx * columns.length + colIdx + 1}`).join(', ')})`
+          `(${columnNames.map((_, colIdx) => `$${rowIdx * columnNames.length + colIdx + 1}`).join(', ')})`
         ).join(', ');
         
-        const values = dataResult.rows.flatMap(row => columns.map(col => row[col.replace(/"/g, '')]));
+        // Extract values using the raw column names (PostgreSQL returns lowercase keys)
+        const values = dataResult.rows.flatMap(row => columnNames.map(col => row[col]));
         
-        const insertQuery = `INSERT INTO ${fullTableName} (${columns.join(', ')}) VALUES ${placeholders} ON CONFLICT DO NOTHING`;
+        const insertQuery = `INSERT INTO ${fullTableName} (${quotedColumns.join(', ')}) VALUES ${placeholders} ON CONFLICT DO NOTHING`;
         await targetPool.query(insertQuery, values);
         
         totalRowsCopied += dataResult.rows.length;

@@ -459,8 +459,8 @@ export default function ClusterDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nodeId, action: 'sync' }),
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setCluster((prev) =>
           prev
             ? {
@@ -473,9 +473,26 @@ export default function ClusterDetailPage() {
               }
             : prev
         );
+        alert(`Sync completed: ${data.tablesSync || 0} tables, ${data.rowsCopied || 0} rows copied`);
+      } else {
+        // Update node with failed status if returned
+        setCluster((prev) =>
+          prev
+            ? {
+                ...prev,
+                nodes: prev.nodes.map((n) =>
+                  n.id === nodeId
+                    ? { ...n, syncStatus: 'FAILED', syncError: data.error || data.details }
+                    : n
+                ),
+              }
+            : prev
+        );
+        alert(`Sync failed: ${data.error || 'Unknown error'}${data.details ? `\n\nDetails: ${data.details}` : ''}`);
       }
     } catch (error) {
       console.error('Error syncing node:', error);
+      alert('Sync failed: Network error or server unavailable');
     } finally {
       setSyncingNode(null);
     }
