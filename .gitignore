@@ -18,4 +18,3 @@ out
 .deploy
 .logs
 *.tsbuildinfo
-.logs/
