@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { createAuditLog } from '@/lib/audit';
+import { Client } from 'pg';
 
 // GET - Get connection pool config and stats
 export async function GET(request: Request) {
@@ -30,8 +31,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // Generate simulated stats
-    const stats = generatePoolStats(pool);
+    // Get real pool stats (from PgBouncer or PostgreSQL directly)
+    const stats = await getPoolStats(pool as PoolConfig, clusterId);
 
     return NextResponse.json({
       config: pool,
@@ -185,100 +186,267 @@ export async function PATCH(request: Request) {
   }
 }
 
-// Generate simulated pool statistics
-function generatePoolStats(pool: {
+// Interface for pool configuration
+interface PoolConfig {
   enabled: boolean;
   maxClientConn: number;
   defaultPoolSize: number;
   minPoolSize: number;
   reservePoolSize: number;
   maxDbConnections: number;
-}) {
-  const baseActiveClients = pool.enabled ? Math.floor(pool.maxClientConn * (0.3 + Math.random() * 0.4)) : 0;
-  const baseActiveServers = pool.enabled ? Math.floor(pool.defaultPoolSize * (0.4 + Math.random() * 0.3)) : 0;
+  poolerHost?: string | null;
+  poolerPort?: number | null;
+}
 
+// Query real PgBouncer statistics if available
+async function queryPgBouncerStats(poolerHost: string, poolerPort: number): Promise<{
+  stats: Record<string, unknown> | null;
+  pools: Array<Record<string, unknown>>;
+  databases: Array<Record<string, unknown>>;
+  clients: Array<Record<string, unknown>>;
+  servers: Array<Record<string, unknown>>;
+  error?: string;
+}> {
+  const client = new Client({
+    host: poolerHost,
+    port: poolerPort,
+    database: 'pgbouncer',
+    user: 'pgbouncer', // Default PgBouncer admin user
+    connectionTimeoutMillis: 5000,
+  });
+
+  try {
+    await client.connect();
+    
+    // Query PgBouncer stats
+    const [statsResult, poolsResult, databasesResult, clientsResult, serversResult] = await Promise.all([
+      client.query('SHOW STATS'),
+      client.query('SHOW POOLS'),
+      client.query('SHOW DATABASES'),
+      client.query('SHOW CLIENTS'),
+      client.query('SHOW SERVERS'),
+    ]);
+
+    return {
+      stats: statsResult.rows[0] || null,
+      pools: poolsResult.rows,
+      databases: databasesResult.rows,
+      clients: clientsResult.rows,
+      servers: serversResult.rows,
+    };
+  } catch (error) {
+    return {
+      stats: null,
+      pools: [],
+      databases: [],
+      clients: [],
+      servers: [],
+      error: (error as Error).message,
+    };
+  } finally {
+    await client.end();
+  }
+}
+
+// Query PostgreSQL connection statistics directly
+async function queryPostgresConnectionStats(connectionString: string): Promise<{
+  activeConnections: number;
+  idleConnections: number;
+  maxConnections: number;
+  waitingConnections: number;
+  databaseStats: Array<Record<string, unknown>>;
+  error?: string;
+}> {
+  const client = new Client({ connectionString, connectionTimeoutMillis: 5000 });
+
+  try {
+    await client.connect();
+    
+    // Get connection stats
+    const [connStatsResult, maxConnResult, dbStatsResult] = await Promise.all([
+      client.query(`
+        SELECT 
+          state,
+          count(*) as count,
+          wait_event_type
+        FROM pg_stat_activity 
+        WHERE backend_type = 'client backend'
+        GROUP BY state, wait_event_type
+      `),
+      client.query(`SELECT setting::int as max_conn FROM pg_settings WHERE name = 'max_connections'`),
+      client.query(`
+        SELECT 
+          datname,
+          numbackends as current_connections,
+          xact_commit as transactions_committed,
+          xact_rollback as transactions_rolledback,
+          blks_read,
+          blks_hit,
+          tup_returned,
+          tup_fetched,
+          tup_inserted,
+          tup_updated,
+          tup_deleted
+        FROM pg_stat_database 
+        WHERE datname NOT IN ('template0', 'template1')
+      `),
+    ]);
+
+    let activeConnections = 0;
+    let idleConnections = 0;
+    let waitingConnections = 0;
+
+    for (const row of connStatsResult.rows) {
+      const count = parseInt(row.count);
+      if (row.state === 'active') {
+        activeConnections += count;
+      } else if (row.state === 'idle') {
+        idleConnections += count;
+      } else if (row.state === 'idle in transaction' || row.wait_event_type === 'Lock') {
+        waitingConnections += count;
+      }
+    }
+
+    return {
+      activeConnections,
+      idleConnections,
+      maxConnections: maxConnResult.rows[0]?.max_conn || 100,
+      waitingConnections,
+      databaseStats: dbStatsResult.rows,
+    };
+  } catch (error) {
+    return {
+      activeConnections: 0,
+      idleConnections: 0,
+      maxConnections: 100,
+      waitingConnections: 0,
+      databaseStats: [],
+      error: (error as Error).message,
+    };
+  } finally {
+    await client.end();
+  }
+}
+
+// Get pool statistics - tries PgBouncer first, falls back to PostgreSQL stats
+async function getPoolStats(pool: PoolConfig, clusterId: string) {
+  // Try to get real PgBouncer stats if pooler is configured
+  if (pool.poolerHost && pool.poolerPort) {
+    const pgbouncerStats = await queryPgBouncerStats(pool.poolerHost, pool.poolerPort);
+    
+    if (!pgbouncerStats.error) {
+      // Process real PgBouncer stats
+      const activeClients = pgbouncerStats.clients.filter((c: Record<string, unknown>) => c.state === 'active').length;
+      const waitingClients = pgbouncerStats.clients.filter((c: Record<string, unknown>) => c.state === 'waiting').length;
+      const activeServers = pgbouncerStats.servers.filter((s: Record<string, unknown>) => s.state === 'active').length;
+      const idleServers = pgbouncerStats.servers.filter((s: Record<string, unknown>) => s.state === 'idle').length;
+
+      return {
+        source: 'pgbouncer',
+        totalClients: pgbouncerStats.clients.length,
+        activeClients,
+        waitingClients,
+        totalServers: pgbouncerStats.servers.length,
+        activeServers,
+        idleServers,
+        usedServers: activeServers,
+        avgQueryTime: pgbouncerStats.stats?.avg_query_time || '0',
+        avgWaitTime: pgbouncerStats.stats?.avg_wait_time || '0',
+        totalQueries: parseInt(String(pgbouncerStats.stats?.total_query_count || 0)),
+        totalTransactions: parseInt(String(pgbouncerStats.stats?.total_xact_count || 0)),
+        totalReceived: parseInt(String(pgbouncerStats.stats?.total_received || 0)),
+        totalSent: parseInt(String(pgbouncerStats.stats?.total_sent || 0)),
+        clientUtilization: pool.maxClientConn > 0 
+          ? ((pgbouncerStats.clients.length / pool.maxClientConn) * 100).toFixed(1) 
+          : '0',
+        serverUtilization: pool.defaultPoolSize > 0 
+          ? ((activeServers / pool.defaultPoolSize) * 100).toFixed(1) 
+          : '0',
+        databases: pgbouncerStats.databases.map((db: Record<string, unknown>) => ({
+          name: db.name,
+          host: db.host,
+          port: db.port,
+          database: db.database,
+          currentConnections: db.current_connections,
+          maxConnections: db.max_connections,
+          poolSize: db.pool_size,
+          minPoolSize: db.min_pool_size,
+          reservePool: db.reserve_pool,
+        })),
+        pools: pgbouncerStats.pools,
+      };
+    }
+  }
+
+  // Fall back to querying PostgreSQL directly
+  const cluster = await prisma.cluster.findUnique({
+    where: { id: clusterId },
+    include: { nodes: { where: { role: 'PRIMARY', connectionString: { not: null } } } },
+  });
+
+  const primaryNode = cluster?.nodes[0];
+  if (primaryNode?.connectionString) {
+    const pgStats = await queryPostgresConnectionStats(primaryNode.connectionString);
+    
+    if (!pgStats.error) {
+      const totalConnections = pgStats.activeConnections + pgStats.idleConnections;
+      
+      return {
+        source: 'postgresql',
+        totalClients: totalConnections,
+        activeClients: pgStats.activeConnections,
+        waitingClients: pgStats.waitingConnections,
+        totalServers: pgStats.maxConnections,
+        activeServers: pgStats.activeConnections,
+        idleServers: pgStats.idleConnections,
+        usedServers: totalConnections,
+        avgQueryTime: '0', // Not available from pg_stat_activity
+        avgWaitTime: '0',
+        totalQueries: 0,
+        totalTransactions: pgStats.databaseStats.reduce((sum: number, db: Record<string, unknown>) => 
+          sum + parseInt(String(db.transactions_committed || 0)), 0),
+        totalReceived: 0,
+        totalSent: 0,
+        clientUtilization: pgStats.maxConnections > 0 
+          ? ((totalConnections / pgStats.maxConnections) * 100).toFixed(1) 
+          : '0',
+        serverUtilization: pgStats.maxConnections > 0 
+          ? ((totalConnections / pgStats.maxConnections) * 100).toFixed(1) 
+          : '0',
+        databases: pgStats.databaseStats.map((db: Record<string, unknown>) => ({
+          name: db.datname,
+          host: 'primary',
+          port: 5432,
+          database: db.datname,
+          currentConnections: db.current_connections || db.numbackends,
+          maxConnections: Math.floor(pgStats.maxConnections * 0.8),
+          poolSize: pool.defaultPoolSize,
+          minPoolSize: pool.minPoolSize,
+          reservePool: pool.reservePoolSize,
+        })),
+      };
+    }
+  }
+
+  // Return empty stats if nothing is available
   return {
-    // Overall stats
-    totalClients: baseActiveClients + Math.floor(Math.random() * 50),
-    activeClients: baseActiveClients,
-    waitingClients: pool.enabled ? Math.floor(Math.random() * 10) : 0,
-    totalServers: pool.maxDbConnections,
-    activeServers: baseActiveServers,
-    idleServers: pool.enabled ? pool.defaultPoolSize - baseActiveServers : 0,
-    usedServers: baseActiveServers,
-
-    // Performance metrics
-    avgQueryTime: pool.enabled ? (Math.random() * 50 + 5).toFixed(2) : '0',
-    avgWaitTime: pool.enabled ? (Math.random() * 10).toFixed(2) : '0',
-    totalQueries: pool.enabled ? Math.floor(Math.random() * 1000000) + 100000 : 0,
-    totalTransactions: pool.enabled ? Math.floor(Math.random() * 500000) + 50000 : 0,
-    totalReceived: pool.enabled ? Math.floor(Math.random() * 10000000000) : 0,
-    totalSent: pool.enabled ? Math.floor(Math.random() * 50000000000) : 0,
-
-    // Pool utilization
-    clientUtilization: pool.enabled ? ((baseActiveClients / pool.maxClientConn) * 100).toFixed(1) : '0',
-    serverUtilization: pool.enabled ? ((baseActiveServers / pool.defaultPoolSize) * 100).toFixed(1) : '0',
-
-    // Per-database stats
-    databases: pool.enabled ? [
-      {
-        name: 'postgres',
-        host: 'primary',
-        port: 5432,
-        database: 'postgres',
-        currentConnections: Math.floor(baseActiveServers * 0.6),
-        maxConnections: Math.floor(pool.maxDbConnections * 0.6),
-        poolSize: Math.floor(pool.defaultPoolSize * 0.6),
-        minPoolSize: Math.floor(pool.minPoolSize * 0.6),
-        reservePool: Math.floor(pool.reservePoolSize * 0.6),
-      },
-      {
-        name: 'app_db',
-        host: 'primary',
-        port: 5432,
-        database: 'app_db',
-        currentConnections: Math.floor(baseActiveServers * 0.3),
-        maxConnections: Math.floor(pool.maxDbConnections * 0.3),
-        poolSize: Math.floor(pool.defaultPoolSize * 0.3),
-        minPoolSize: Math.floor(pool.minPoolSize * 0.3),
-        reservePool: Math.floor(pool.reservePoolSize * 0.3),
-      },
-      {
-        name: 'analytics',
-        host: 'replica-1',
-        port: 5432,
-        database: 'analytics',
-        currentConnections: Math.floor(baseActiveServers * 0.1),
-        maxConnections: Math.floor(pool.maxDbConnections * 0.1),
-        poolSize: Math.floor(pool.defaultPoolSize * 0.1),
-        minPoolSize: Math.floor(pool.minPoolSize * 0.1),
-        reservePool: Math.floor(pool.reservePoolSize * 0.1),
-      },
-    ] : [],
-
-    // Per-user stats
-    users: pool.enabled ? [
-      {
-        name: 'app_user',
-        activeConnections: Math.floor(baseActiveClients * 0.7),
-        waitingConnections: Math.floor(Math.random() * 5),
-        maxConnections: Math.floor(pool.maxClientConn * 0.7),
-      },
-      {
-        name: 'readonly_user',
-        activeConnections: Math.floor(baseActiveClients * 0.2),
-        waitingConnections: Math.floor(Math.random() * 2),
-        maxConnections: Math.floor(pool.maxClientConn * 0.2),
-      },
-      {
-        name: 'admin',
-        activeConnections: Math.floor(baseActiveClients * 0.1),
-        waitingConnections: 0,
-        maxConnections: Math.floor(pool.maxClientConn * 0.1),
-      },
-    ] : [],
-
-    // Timestamp
-    updatedAt: new Date().toISOString(),
+    source: 'unavailable',
+    totalClients: 0,
+    activeClients: 0,
+    waitingClients: 0,
+    totalServers: 0,
+    activeServers: 0,
+    idleServers: 0,
+    usedServers: 0,
+    avgQueryTime: '0',
+    avgWaitTime: '0',
+    totalQueries: 0,
+    totalTransactions: 0,
+    totalReceived: 0,
+    totalSent: 0,
+    clientUtilization: '0',
+    serverUtilization: '0',
+    databases: [],
+    error: 'No connection pool or database connection available',
   };
 }

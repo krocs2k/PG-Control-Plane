@@ -4,99 +4,179 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
+import { getDatabaseStats, testConnection, getReplicationStatus } from '@/lib/postgres';
 
-// Generate simulated metrics for a cluster
-function generateSimulatedMetrics(clusterId: string, nodeId: string | null) {
-  const now = new Date();
-  const metrics = [];
-  
-  // Generate last 24 hours of metrics (hourly)
-  for (let i = 24; i >= 0; i--) {
-    const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
-    
-    // CPU usage (10-80%)
-    metrics.push({
-      clusterId,
-      nodeId,
-      name: 'cpu_usage',
-      value: 10 + Math.random() * 70 + (i < 3 ? 20 : 0), // Spike in recent hours
-      unit: '%',
-      timestamp,
-    });
-    
-    // Memory usage (40-85%)
-    metrics.push({
-      clusterId,
-      nodeId,
-      name: 'memory_usage',
-      value: 40 + Math.random() * 45,
-      unit: '%',
-      timestamp,
-    });
-    
-    // Disk usage (trending up)
-    metrics.push({
-      clusterId,
-      nodeId,
-      name: 'disk_usage',
-      value: 55 + (24 - i) * 0.5 + Math.random() * 5,
-      unit: '%',
-      timestamp,
-    });
-    
-    // Replication lag (0-500ms for replicas)
-    if (nodeId) {
-      metrics.push({
-        clusterId,
-        nodeId,
-        name: 'replication_lag',
-        value: Math.random() * 100 + (i < 2 ? 400 : 0), // Spike recently
-        unit: 'ms',
-        timestamp,
-      });
+// Collect real metrics from a PostgreSQL database
+async function collectRealMetrics(
+  clusterId: string,
+  nodeId: string,
+  connectionString: string
+): Promise<Array<{
+  clusterId: string;
+  nodeId: string;
+  name: string;
+  value: number;
+  unit: string;
+  timestamp: Date;
+}>> {
+  const metrics: Array<{
+    clusterId: string;
+    nodeId: string;
+    name: string;
+    value: number;
+    unit: string;
+    timestamp: Date;
+  }> = [];
+  const timestamp = new Date();
+
+  try {
+    // Test connection first
+    const connTest = await testConnection(connectionString);
+    if (!connTest.success) {
+      console.error(`Failed to connect to node ${nodeId}: ${connTest.error}`);
+      return metrics;
     }
+
+    // Get database stats
+    const stats = await getDatabaseStats(connectionString);
     
-    // Query latency p95 (5-50ms)
-    metrics.push({
-      clusterId,
-      nodeId,
-      name: 'query_latency_p95',
-      value: 5 + Math.random() * 45,
-      unit: 'ms',
-      timestamp,
-    });
-    
-    // TPS (100-5000)
-    metrics.push({
-      clusterId,
-      nodeId,
-      name: 'tps',
-      value: 100 + Math.random() * 4900,
-      unit: 'tx/s',
-      timestamp,
-    });
-    
-    // Active connections (10-200)
+    // Active connections
     metrics.push({
       clusterId,
       nodeId,
       name: 'active_connections',
-      value: Math.floor(10 + Math.random() * 190),
+      value: stats.activeConnections,
       unit: 'conn',
       timestamp,
     });
-    
-    // WAL write rate (1-50 MB/s)
+
+    // Max connections
     metrics.push({
       clusterId,
       nodeId,
-      name: 'wal_write_rate',
-      value: 1 + Math.random() * 49,
-      unit: 'MB/s',
+      name: 'max_connections',
+      value: stats.maxConnections,
+      unit: 'conn',
       timestamp,
     });
+
+    // Connection utilization
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'connection_utilization',
+      value: (stats.activeConnections / stats.maxConnections) * 100,
+      unit: '%',
+      timestamp,
+    });
+
+    // Cache hit ratio
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'cache_hit_ratio',
+      value: stats.cacheHitRatio,
+      unit: '%',
+      timestamp,
+    });
+
+    // TPS (transactions per second - approximate from total)
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'transactions_committed',
+      value: stats.transactionsCommitted,
+      unit: 'tx',
+      timestamp,
+    });
+
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'transactions_rolledback',
+      value: stats.transactionsRolledBack,
+      unit: 'tx',
+      timestamp,
+    });
+
+    // Database size in MB
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'database_size',
+      value: Math.round(stats.databaseSize / 1024 / 1024),
+      unit: 'MB',
+      timestamp,
+    });
+
+    // Deadlocks
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'deadlocks',
+      value: stats.deadlocks,
+      unit: 'count',
+      timestamp,
+    });
+
+    // Temp file bytes
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'temp_files_size',
+      value: Math.round(stats.tempFilesBytes / 1024 / 1024),
+      unit: 'MB',
+      timestamp,
+    });
+
+    // Buffer blocks read/hit
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'blocks_read',
+      value: stats.blocksRead,
+      unit: 'blocks',
+      timestamp,
+    });
+
+    metrics.push({
+      clusterId,
+      nodeId,
+      name: 'blocks_hit',
+      value: stats.blocksHit,
+      unit: 'blocks',
+      timestamp,
+    });
+
+    // Get replication status for lag info
+    const replicationStatus = await getReplicationStatus(connectionString);
+    
+    if (replicationStatus.isInRecovery && replicationStatus.replayLagSeconds !== undefined) {
+      // This is a replica - record replication lag
+      metrics.push({
+        clusterId,
+        nodeId,
+        name: 'replication_lag',
+        value: replicationStatus.replayLagSeconds * 1000, // Convert to ms
+        unit: 'ms',
+        timestamp,
+      });
+    } else if (!replicationStatus.isInRecovery && replicationStatus.replicas) {
+      // This is a primary - record replica count
+      metrics.push({
+        clusterId,
+        nodeId,
+        name: 'replica_count',
+        value: replicationStatus.replicas.length,
+        unit: 'count',
+        timestamp,
+      });
+    }
+
+  } catch (error) {
+    console.error(`Error collecting metrics for node ${nodeId}:`, error);
   }
-  
+
   return metrics;
 }
 
@@ -112,34 +192,53 @@ export async function GET(request: Request) {
     const nodeId = searchParams.get('nodeId');
     const metricName = searchParams.get('name');
     const hours = parseInt(searchParams.get('hours') || '24', 10);
+    const realtime = searchParams.get('realtime') === 'true';
 
     if (!clusterId) {
       return NextResponse.json({ error: 'clusterId is required' }, { status: 400 });
     }
 
-    // Check if we have metrics, if not generate simulated ones
-    const existingCount = await prisma.metric.count({
-      where: { clusterId },
-    });
-
-    if (existingCount === 0) {
-      // Get nodes for the cluster
-      const nodes = await prisma.node.findMany({ where: { clusterId } });
-      
-      // Generate cluster-level metrics
-      const clusterMetrics = generateSimulatedMetrics(clusterId, null);
-      
-      // Generate node-level metrics
-      const nodeMetrics = nodes.flatMap(node => 
-        generateSimulatedMetrics(clusterId, node.id)
-      );
-      
-      // Insert all metrics
-      await prisma.metric.createMany({
-        data: [...clusterMetrics, ...nodeMetrics],
+    // If realtime=true, collect fresh metrics from database
+    if (realtime) {
+      const nodes = await prisma.node.findMany({
+        where: {
+          clusterId,
+          connectionString: { not: null },
+          ...(nodeId && { id: nodeId }),
+        },
       });
+
+      const allMetrics: Array<{
+        clusterId: string;
+        nodeId: string;
+        name: string;
+        value: number;
+        unit: string;
+        timestamp: Date;
+      }> = [];
+
+      for (const node of nodes) {
+        if (node.connectionString) {
+          const nodeMetrics = await collectRealMetrics(
+            clusterId,
+            node.id,
+            node.connectionString
+          );
+          allMetrics.push(...nodeMetrics);
+        }
+      }
+
+      // Store the collected metrics
+      if (allMetrics.length > 0) {
+        await prisma.metric.createMany({
+          data: allMetrics,
+        });
+      }
+
+      return NextResponse.json(allMetrics);
     }
 
+    // Return historical metrics from database
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     
     const metrics = await prisma.metric.findMany({
