@@ -24,6 +24,10 @@ import {
   Zap,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Key,
+  RotateCcw,
+  User,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,6 +83,11 @@ interface ConnectionEndpoint {
   bytesIn: string;
   bytesOut: string;
   connectionString: string;
+  connectionStringWithCredentials?: string;
+  username?: string;
+  password?: string;
+  hasCredentials?: boolean;
+  credentialsCreatedAt?: string;
   lastUsedAt: string | null;
   createdAt: string;
 }
@@ -111,8 +120,12 @@ export default function ConnectionEndpointsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
   const [selectedEndpoint, setSelectedEndpoint] = useState<ConnectionEndpoint | null>(null);
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [newCredentials, setNewCredentials] = useState<{ username: string; password: string; connectionString: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -233,6 +246,52 @@ export default function ConnectionEndpointsPage() {
       console.error('Error deleting endpoint:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const regenerateCredentials = async () => {
+    if (!selectedEndpoint) return;
+    setRegenerating(true);
+    try {
+      const response = await fetch('/api/connection-endpoints', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedEndpoint.id, action: 'regenerate-credentials' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNewCredentials({
+          username: data.username,
+          password: data.password,
+          connectionString: data.connectionStringWithCredentials,
+        });
+        setShowRegenerateDialog(false);
+        setShowCredentialsDialog(true);
+        fetchEndpoints();
+      }
+    } catch (error) {
+      console.error('Error regenerating credentials:', error);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const viewCredentials = async (endpoint: ConnectionEndpoint) => {
+    try {
+      const response = await fetch(`/api/connection-endpoints?id=${endpoint.id}&showCredentials=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedEndpoint(endpoint);
+        setNewCredentials({
+          username: data.username,
+          password: data.password,
+          connectionString: data.connectionStringWithCredentials,
+        });
+        setShowCredentialsDialog(true);
+      }
+    } catch (error) {
+      console.error('Error fetching credentials:', error);
     }
   };
 
@@ -547,6 +606,24 @@ export default function ConnectionEndpointsPage() {
                             >
                               <RefreshCw className="h-4 w-4 mr-2" />
                               Reset Stats
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-slate-700" />
+                            <DropdownMenuItem
+                              onClick={() => viewCredentials(endpoint)}
+                              className="text-cyan-400 hover:bg-slate-700"
+                            >
+                              <Key className="h-4 w-4 mr-2" />
+                              View Credentials
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedEndpoint(endpoint);
+                                setShowRegenerateDialog(true);
+                              }}
+                              className="text-amber-400 hover:bg-slate-700"
+                            >
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Regenerate Credentials
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-slate-700" />
                             <DropdownMenuItem
@@ -1059,6 +1136,165 @@ export default function ConnectionEndpointsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Regenerate Credentials Confirmation */}
+        <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+          <AlertDialogContent className="bg-slate-800 border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white flex items-center gap-2">
+                <RotateCcw className="h-5 w-5 text-amber-400" />
+                Regenerate Credentials
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400">
+                Are you sure you want to regenerate credentials for &ldquo;{selectedEndpoint?.name}&rdquo;?
+                <br /><br />
+                <span className="text-amber-400 font-medium">Warning:</span> This will generate a new username and password.
+                Any applications using the old credentials will lose connectivity until updated with the new credentials.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-700 text-white border-slate-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={regenerateCredentials}
+                disabled={regenerating}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {regenerating ? 'Regenerating...' : 'Regenerate'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* View/Display Credentials Dialog */}
+        <Dialog open={showCredentialsDialog} onOpenChange={(open) => {
+          setShowCredentialsDialog(open);
+          if (!open) {
+            setNewCredentials(null);
+          }
+        }}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5 text-cyan-400" />
+                Connection Credentials
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Secure credentials for endpoint: <span className="text-cyan-400">{selectedEndpoint?.name}</span>
+              </DialogDescription>
+            </DialogHeader>
+            
+            {newCredentials && (
+              <div className="space-y-4 py-4">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-amber-200 text-sm">
+                  <Shield className="h-4 w-4 inline-block mr-2" />
+                  Save these credentials securely. The password will be masked after closing this dialog.
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400 text-sm flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Username
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newCredentials.username}
+                        readOnly
+                        className="bg-slate-900 border-slate-600 text-cyan-400 font-mono"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(newCredentials.username, 'cred-username')}
+                        className="text-slate-400 hover:text-white shrink-0"
+                      >
+                        {copiedId === 'cred-username' ? (
+                          <Check className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400 text-sm flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Password
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newCredentials.password}
+                        readOnly
+                        className="bg-slate-900 border-slate-600 text-cyan-400 font-mono"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(newCredentials.password, 'cred-password')}
+                        className="text-slate-400 hover:text-white shrink-0"
+                      >
+                        {copiedId === 'cred-password' ? (
+                          <Check className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-400 text-sm flex items-center gap-2">
+                      <Link2 className="h-4 w-4" />
+                      Full Connection String
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newCredentials.connectionString}
+                        readOnly
+                        className="bg-slate-900 border-slate-600 text-cyan-400 font-mono text-xs"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(newCredentials.connectionString, 'cred-connstring')}
+                        className="text-slate-400 hover:text-white shrink-0"
+                      >
+                        {copiedId === 'cred-connstring' ? (
+                          <Check className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowCredentialsDialog(false);
+                  setShowRegenerateDialog(true);
+                }}
+                className="text-amber-400 hover:text-amber-300"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Regenerate
+              </Button>
+              <Button
+                onClick={() => setShowCredentialsDialog(false)}
+                className="bg-cyan-600 hover:bg-cyan-700"
+              >
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

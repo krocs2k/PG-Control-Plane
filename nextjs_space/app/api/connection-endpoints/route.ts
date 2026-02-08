@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { createAuditLog } from '@/lib/audit';
 import { EndpointMode, EndpointStatus } from '@prisma/client';
+import crypto from 'crypto';
 
 // Helper to generate unique slug
 function generateSlug(clusterName: string, endpointName: string): string {
@@ -13,6 +14,46 @@ function generateSlug(clusterName: string, endpointName: string): string {
     .replace(/^-|-$/g, '');
   const uniqueSuffix = Math.random().toString(36).substring(2, 8);
   return `${base}-${uniqueSuffix}`;
+}
+
+// Generate secure random username (prefix + random alphanumeric)
+function generateSecureUsername(): string {
+  const prefixes = ['ep', 'conn', 'app', 'svc', 'db'];
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const randomPart = crypto.randomBytes(4).toString('hex');
+  return `${prefix}_${randomPart}`;
+}
+
+// Generate secure random password (32 chars with mixed characters)
+function generateSecurePassword(): string {
+  const length = 32;
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  const bytes = crypto.randomBytes(length);
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += charset[bytes[i] % charset.length];
+  }
+  // Ensure at least one of each type
+  const ensureChars = [
+    'abcdefghijklmnopqrstuvwxyz',
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    '0123456789',
+    '!@#$%^&*'
+  ];
+  ensureChars.forEach((chars, idx) => {
+    const randomChar = chars[crypto.randomBytes(1)[0] % chars.length];
+    const pos = idx * 4; // Spread them out
+    password = password.substring(0, pos) + randomChar + password.substring(pos + 1);
+  });
+  return password;
+}
+
+// Generate both username and password
+function generateCredentials(): { username: string; password: string } {
+  return {
+    username: generateSecureUsername(),
+    password: generateSecurePassword(),
+  };
 }
 
 // Extract domain from request headers (dynamic based on deployment)
@@ -33,14 +74,18 @@ function generateConnectionString(
     port: number;
     sslMode: string;
     mode: EndpointMode;
+    username?: string | null;
+    password?: string | null;
   },
   domain: string,
-  includeCredentials: boolean = false
+  showCredentials: boolean = false
 ): string {
   // Extract just the hostname (without protocol and port from the URL)
   const host = domain.replace(/^https?:\/\//, '').split(':')[0].split('/')[0];
-  const username = includeCredentials ? 'app_user' : '<username>';
-  const password = includeCredentials ? '********' : '<password>';
+  
+  // Use stored credentials or placeholders
+  const username = showCredentials && endpoint.username ? endpoint.username : '<username>';
+  const password = showCredentials && endpoint.password ? endpoint.password : '<password>';
   const dbName = endpoint.slug;
   
   let params = `sslmode=${endpoint.sslMode}`;
@@ -72,6 +117,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const clusterId = searchParams.get('clusterId');
     const endpointId = searchParams.get('id');
+    const showCredentials = searchParams.get('showCredentials') === 'true';
 
     // Get single endpoint details
     if (endpointId) {
@@ -98,9 +144,13 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         ...endpoint,
+        // Mask password unless explicitly requested
+        password: showCredentials ? endpoint.password : (endpoint.password ? '********' : null),
         cluster,
         routingConfig,
-        connectionString: generateConnectionString(endpoint, domain),
+        connectionString: generateConnectionString(endpoint, domain, false),
+        connectionStringWithCredentials: showCredentials ? generateConnectionString(endpoint, domain, true) : null,
+        hasCredentials: !!endpoint.username && !!endpoint.password,
         totalConnections: endpoint.totalConnections.toString(),
         bytesIn: endpoint.bytesIn.toString(),
         bytesOut: endpoint.bytesOut.toString(),
@@ -131,7 +181,11 @@ export async function GET(request: NextRequest) {
     // Add connection strings to endpoints
     const endpointsWithStrings = endpoints.map((ep) => ({
       ...ep,
-      connectionString: generateConnectionString(ep, domain),
+      // Mask password unless explicitly requested
+      password: showCredentials ? ep.password : (ep.password ? '********' : null),
+      connectionString: generateConnectionString(ep, domain, false),
+      connectionStringWithCredentials: showCredentials ? generateConnectionString(ep, domain, true) : null,
+      hasCredentials: !!ep.username && !!ep.password,
       totalConnections: ep.totalConnections.toString(),
       bytesIn: ep.bytesIn.toString(),
       bytesOut: ep.bytesOut.toString(),
@@ -200,8 +254,11 @@ export async function POST(request: NextRequest) {
 
     // Generate unique slug
     const slug = generateSlug(cluster.name, name);
+    
+    // Auto-generate secure credentials
+    const credentials = generateCredentials();
 
-    // Create endpoint
+    // Create endpoint with credentials
     const endpoint = await prisma.connectionEndpoint.create({
       data: {
         clusterId,
@@ -215,6 +272,9 @@ export async function POST(request: NextRequest) {
         idleTimeout,
         readWeight,
         writeWeight,
+        username: credentials.username,
+        password: credentials.password,
+        credentialsCreatedAt: new Date(),
       },
     });
 
@@ -223,7 +283,7 @@ export async function POST(request: NextRequest) {
       action: 'CREATE_CONNECTION_ENDPOINT',
       entityType: 'ConnectionEndpoint',
       entityId: endpoint.id,
-      afterState: endpoint,
+      afterState: { ...endpoint, password: '***REDACTED***' },
     });
 
     // Get domain dynamically from request headers
@@ -231,7 +291,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...endpoint,
-      connectionString: generateConnectionString(endpoint, domain),
+      connectionString: generateConnectionString(endpoint, domain, false),
+      connectionStringWithCredentials: generateConnectionString(endpoint, domain, true),
+      hasCredentials: true,
       totalConnections: endpoint.totalConnections.toString(),
       bytesIn: endpoint.bytesIn.toString(),
       bytesOut: endpoint.bytesOut.toString(),
@@ -276,6 +338,9 @@ export async function PATCH(request: NextRequest) {
 
     let updatedEndpoint;
 
+    // Get domain dynamically from request headers
+    const domain = getDynamicDomain(request);
+
     switch (action) {
       case 'enable':
         updatedEndpoint = await prisma.connectionEndpoint.update({
@@ -310,6 +375,40 @@ export async function PATCH(request: NextRequest) {
         });
         break;
 
+      case 'regenerate-credentials': {
+        // Generate new secure credentials
+        const newCredentials = generateCredentials();
+        updatedEndpoint = await prisma.connectionEndpoint.update({
+          where: { id },
+          data: {
+            username: newCredentials.username,
+            password: newCredentials.password,
+            credentialsCreatedAt: new Date(),
+          },
+        });
+
+        await createAuditLog({
+          userId: session.user.id,
+          action: 'ENDPOINT_REGENERATE_CREDENTIALS',
+          entityType: 'ConnectionEndpoint',
+          entityId: id,
+          beforeState: { ...existingEndpoint, password: '***REDACTED***' },
+          afterState: { ...updatedEndpoint, password: '***REDACTED***' },
+        });
+
+        // Return with new credentials visible (one-time display)
+        return NextResponse.json({
+          ...updatedEndpoint,
+          connectionString: generateConnectionString(updatedEndpoint, domain, false),
+          connectionStringWithCredentials: generateConnectionString(updatedEndpoint, domain, true),
+          hasCredentials: true,
+          credentialsRegenerated: true,
+          totalConnections: updatedEndpoint.totalConnections.toString(),
+          bytesIn: updatedEndpoint.bytesIn.toString(),
+          bytesOut: updatedEndpoint.bytesOut.toString(),
+        });
+      }
+
       default:
         // General update
         const allowedFields = [
@@ -343,16 +442,15 @@ export async function PATCH(request: NextRequest) {
       action: action ? `ENDPOINT_${action.toUpperCase()}` : 'UPDATE_CONNECTION_ENDPOINT',
       entityType: 'ConnectionEndpoint',
       entityId: id,
-      beforeState: existingEndpoint,
-      afterState: updatedEndpoint,
+      beforeState: { ...existingEndpoint, password: '***REDACTED***' },
+      afterState: { ...updatedEndpoint, password: '***REDACTED***' },
     });
-
-    // Get domain dynamically from request headers
-    const domain = getDynamicDomain(request);
 
     return NextResponse.json({
       ...updatedEndpoint,
-      connectionString: generateConnectionString(updatedEndpoint, domain),
+      password: updatedEndpoint.password ? '********' : null,
+      connectionString: generateConnectionString(updatedEndpoint, domain, false),
+      hasCredentials: !!updatedEndpoint.username && !!updatedEndpoint.password,
       totalConnections: updatedEndpoint.totalConnections.toString(),
       bytesIn: updatedEndpoint.bytesIn.toString(),
       bytesOut: updatedEndpoint.bytesOut.toString(),
