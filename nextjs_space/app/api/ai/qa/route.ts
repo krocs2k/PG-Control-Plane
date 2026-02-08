@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
+import { processHybrid, requiresLLMEnhancement } from '@/lib/ai-hybrid';
 
 // Test case templates for different cluster configurations
 const TEST_TEMPLATES = {
@@ -336,9 +337,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { action, clusterId } = body;
+    const { action, clusterId, query: userQuery, enhance } = body;
 
-    let cluster = null;
+    let cluster: any = null;
     let nodes: any[] = [];
     
     if (clusterId) {
@@ -349,33 +350,57 @@ export async function POST(request: NextRequest) {
       nodes = cluster?.nodes || [];
     }
 
+    const clusterContext = cluster 
+      ? `Cluster: ${cluster.name}, Topology: ${cluster.topology}, Replication: ${cluster.replicationMode}, Nodes: ${nodes.length} (${nodes.filter((n: any) => n.role === 'PRIMARY').length} primary, ${nodes.filter((n: any) => n.role === 'REPLICA').length} replicas)`
+      : 'No specific cluster selected';
+
+    // Determine if LLM enhancement is requested or needed
+    const shouldEnhance = enhance || requiresLLMEnhancement(userQuery || '');
+
     let result: any = {};
 
     switch (action) {
       case 'generate_tests': {
-        const tests: any[] = [];
-        let id = 1;
+        const templateFn = () => {
+          const tests: any[] = [];
+          let id = 1;
 
-        // Always include replication tests for clusters with replicas
-        if (nodes.some(n => n.role === 'REPLICA')) {
-          TEST_TEMPLATES.replication.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
+          if (nodes.some(n => n.role === 'REPLICA')) {
+            TEST_TEMPLATES.replication.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
+          }
+
+          if (cluster?.topology === 'HA' || cluster?.topology === 'MULTI_REGION') {
+            TEST_TEMPLATES.failover.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
+          }
+
+          TEST_TEMPLATES.performance.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
+          TEST_TEMPLATES.integrity.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
+          TEST_TEMPLATES.backup.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
+
+          return { tests };
+        };
+
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'qa',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 85, source: 'template', processingTime: 5 };
         }
-
-        // Include failover tests for HA/multi-region topologies
-        if (cluster?.topology === 'HA' || cluster?.topology === 'MULTI_REGION') {
-          TEST_TEMPLATES.failover.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
-        }
-
-        // Always include performance tests
-        TEST_TEMPLATES.performance.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
-
-        // Include integrity tests
-        TEST_TEMPLATES.integrity.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
-
-        // Include backup tests
-        TEST_TEMPLATES.backup.forEach(t => tests.push({ ...t, id: `TC-${String(id++).padStart(3, '0')}` }));
-
-        result = { tests };
         break;
       }
 
@@ -384,29 +409,97 @@ export async function POST(request: NextRequest) {
         if (!query) {
           return NextResponse.json({ error: 'Query is required' }, { status: 400 });
         }
-        result = analyzeQuery(query);
+        
+        const templateFn = () => analyzeQuery(query);
+        
+        if (shouldEnhance || query.length > 300) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'qa',
+            clusterId,
+            userQuery: `Analyze this SQL query: ${query}`,
+            clusterContext,
+            forceEnhancement: enhance || query.length > 300,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 80, source: 'template', processingTime: 3 };
+        }
         break;
       }
 
       case 'suggest_scenarios': {
-        const scenarios = SCENARIO_TEMPLATES.map((s, i) => ({
-          ...s,
-          id: `SC-${String(i + 1).padStart(3, '0')}`,
-        }));
+        const templateFn = () => {
+          const scenarios = SCENARIO_TEMPLATES.map((s, i) => ({
+            ...s,
+            id: `SC-${String(i + 1).padStart(3, '0')}`,
+          }));
 
-        // Filter scenarios based on cluster topology
-        const filteredScenarios = scenarios.filter(s => {
-          if (s.category === 'Failover' && nodes.length < 2) return false;
-          if (s.category === 'Replication' && !nodes.some(n => n.role === 'REPLICA')) return false;
-          return true;
-        });
+          const filteredScenarios = scenarios.filter(s => {
+            if (s.category === 'Failover' && nodes.length < 2) return false;
+            if (s.category === 'Replication' && !nodes.some(n => n.role === 'REPLICA')) return false;
+            return true;
+          });
 
-        result = { scenarios: filteredScenarios };
+          return { scenarios: filteredScenarios };
+        };
+
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'qa',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 85, source: 'template', processingTime: 4 };
+        }
         break;
       }
 
       case 'validate_config': {
-        result = validateConfig(cluster, nodes);
+        const templateFn = () => validateConfig(cluster, nodes);
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'qa',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 82, source: 'template', processingTime: 6 };
+        }
         break;
       }
 

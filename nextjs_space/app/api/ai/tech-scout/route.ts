@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
+import { processHybrid, requiresLLMEnhancement } from '@/lib/ai-hybrid';
 
 // PostgreSQL version database
 const PG_VERSIONS = {
@@ -411,38 +412,180 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { action, clusterId, currentVersion, workloadType } = body;
+    const { action, clusterId, currentVersion, workloadType, userQuery, enhance } = body;
 
     const clusters = await prisma.cluster.findMany({
       include: { nodes: true, project: true },
     });
 
+    const totalNodes = clusters.reduce((sum, c) => sum + (c.nodes?.length || 0), 0);
+    const clusterContext = `Environment: ${clusters.length} clusters, ${totalNodes} total nodes. Current PostgreSQL version: ${currentVersion || 'unknown'}. Workload type: ${workloadType || 'mixed'}.`;
+    const shouldEnhance = enhance || requiresLLMEnhancement(userQuery || '');
+
     let result: any = {};
 
     switch (action) {
-      case 'version_recommendations':
-        result = getVersionRecommendations(currentVersion || 'PostgreSQL 14', clusters);
+      case 'version_recommendations': {
+        const templateFn = () => getVersionRecommendations(currentVersion || 'PostgreSQL 14', clusters);
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'tech-scout',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 88, source: 'template', processingTime: 5 };
+        }
         break;
+      }
 
-      case 'extension_suggestions':
-        result = getExtensionSuggestions(clusters, workloadType || 'mixed');
+      case 'extension_suggestions': {
+        const templateFn = () => getExtensionSuggestions(clusters, workloadType || 'mixed');
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'tech-scout',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 85, source: 'template', processingTime: 4 };
+        }
         break;
+      }
 
-      case 'config_optimization':
-        result = getConfigOptimization(workloadType || 'mixed', clusters);
+      case 'config_optimization': {
+        const templateFn = () => getConfigOptimization(workloadType || 'mixed', clusters);
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'tech-scout',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 82, source: 'template', processingTime: 4 };
+        }
         break;
+      }
 
-      case 'upgrade_path':
-        result = getUpgradePath(currentVersion || 'PostgreSQL 14', clusters);
+      case 'upgrade_path': {
+        const templateFn = () => getUpgradePath(currentVersion || 'PostgreSQL 14', clusters);
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'tech-scout',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 80, source: 'template', processingTime: 6 };
+        }
         break;
+      }
 
-      case 'architecture_review':
-        result = getArchitectureReview(clusters);
+      case 'architecture_review': {
+        const templateFn = () => getArchitectureReview(clusters);
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'tech-scout',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 78, source: 'template', processingTime: 5 };
+        }
         break;
+      }
 
-      case 'technology_trends':
-        result = getTechnologyTrends();
+      case 'technology_trends': {
+        const templateFn = () => getTechnologyTrends();
+        
+        if (shouldEnhance) {
+          const hybridResult = await processHybrid(templateFn, {
+            domain: 'tech-scout',
+            clusterId,
+            userQuery,
+            clusterContext,
+            forceEnhancement: enhance,
+          });
+          result = {
+            ...hybridResult.data,
+            _meta: {
+              confidence: hybridResult.confidence,
+              source: hybridResult.source,
+              processingTime: hybridResult.processingTime,
+            },
+            aiInsights: hybridResult.llmEnhancement,
+          };
+        } else {
+          result = templateFn();
+          result._meta = { confidence: 90, source: 'template', processingTime: 3 };
+        }
         break;
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
