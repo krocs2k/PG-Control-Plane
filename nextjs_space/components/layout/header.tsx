@@ -79,12 +79,12 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-700/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Database className="h-8 w-8 text-cyan-500" />
-            <span className="text-xl font-bold text-slate-100">PG Control Plane</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-slate-100">PG Control Plane</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -116,16 +116,16 @@ export function Header() {
                   <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 bg-slate-800 border-slate-700">
+              <DropdownMenuContent align="start" className="w-56 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                 {aiNavigation.map((item) => {
                   const Icon = item.icon;
                   return (
                     <DropdownMenuItem key={item.name} asChild>
                       <Link href={item.href} className="flex items-center gap-3 cursor-pointer">
-                        <Icon className="h-4 w-4 text-cyan-400" />
+                        <Icon className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
                         <div>
-                          <div className="font-medium">{item.name}</div>
-                          <div className="text-xs text-slate-400">{item.description}</div>
+                          <div className="font-medium text-slate-900 dark:text-slate-100">{item.name}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{item.description}</div>
                         </div>
                       </Link>
                     </DropdownMenuItem>
@@ -140,23 +140,23 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant={pathname?.startsWith('/admin') ? 'secondary' : 'ghost'}
-                    className={pathname?.startsWith('/admin') ? 'bg-slate-700' : ''}
+                    className={pathname?.startsWith('/admin') ? 'bg-slate-200 dark:bg-slate-700' : ''}
                   >
-                    <Shield className="mr-2 h-4 w-4 text-amber-400" />
+                    <Shield className="mr-2 h-4 w-4 text-amber-500 dark:text-amber-400" />
                     Admin
                     <ChevronDown className="ml-1 h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 bg-slate-800 border-slate-700">
+                <DropdownMenuContent align="start" className="w-56 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                   {adminNavigation.map((item) => {
                     const Icon = item.icon;
                     return (
                       <DropdownMenuItem key={item.name} asChild>
                         <Link href={item.href} className="flex items-center gap-3 cursor-pointer">
-                          <Icon className="h-4 w-4 text-amber-400" />
+                          <Icon className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                           <div>
-                            <div className="font-medium">{item.name}</div>
-                            <div className="text-xs text-slate-400">{item.description}</div>
+                            <div className="font-medium text-slate-900 dark:text-slate-100">{item.name}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">{item.description}</div>
                           </div>
                         </Link>
                       </DropdownMenuItem>
@@ -170,20 +170,20 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           {mounted && (
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
               {theme === 'dark' ? (
-                <Sun className="h-5 w-5 text-slate-300" />
+                <Sun className="h-5 w-5 text-yellow-400" />
               ) : (
-                <Moon className="h-5 w-5 text-slate-300" />
+                <Moon className="h-5 w-5 text-slate-600" />
               )}
             </Button>
           )}
 
-          <div className="hidden md:flex items-center gap-3 border-l border-slate-700 pl-3">
+          <div className="hidden md:flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3">
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-300">{session.user?.email}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-600/20 text-cyan-400">
+              <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+              <span className="text-sm text-slate-700 dark:text-slate-300">{session.user?.email}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-600/20 text-cyan-600 dark:text-cyan-400">
                 {session.user?.role}
               </span>
             </div>
@@ -206,7 +206,7 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-700">
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div className="px-4 py-3 space-y-2">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -225,7 +225,7 @@ export function Header() {
             })}
             
             {/* AI Section */}
-            <div className="pt-2 border-t border-slate-700">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
               <p className="px-4 py-2 text-xs font-medium text-slate-500 uppercase">AI Features</p>
               {aiNavigation.map((item) => {
                 const Icon = item.icon;
@@ -236,7 +236,7 @@ export function Header() {
                       variant={isActive ? 'secondary' : 'ghost'}
                       className="w-full justify-start"
                     >
-                      <Icon className="mr-2 h-4 w-4 text-cyan-400" />
+                      <Icon className="mr-2 h-4 w-4 text-cyan-500 dark:text-cyan-400" />
                       {item.name}
                     </Button>
                   </Link>
@@ -244,10 +244,10 @@ export function Header() {
               })}
             </div>
             
-            <div className="pt-2 border-t border-slate-700">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2 px-4 py-2">
-                <User className="h-4 w-4 text-slate-400" />
-                <span className="text-sm text-slate-300">{session.user?.email}</span>
+                <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">{session.user?.email}</span>
               </div>
               <Button
                 variant="ghost"

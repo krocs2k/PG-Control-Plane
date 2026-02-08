@@ -3,33 +3,45 @@
 @tailwind utilities;
 
 :root {
-  --background: 15 23 42;
-  --foreground: 248 250 252;
+  --background: 241 245 249;
+  --foreground: 15 23 42;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 15 23 42;
-    --foreground: 248 250 252;
-  }
+.dark {
+  --background: 15 23 42;
+  --foreground: 248 250 252;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
-body {
-  background: linear-gradient(135deg, rgb(15, 23, 42) 0%, rgb(30, 41, 59) 100%);
+/* Light theme (default) */
+html:not(.dark) body {
+  background: linear-gradient(135deg, rgb(241, 245, 249) 0%, rgb(226, 232, 240) 100%);
+  color: rgb(15, 23, 42);
   min-height: 100vh;
 }
 
-.dark body {
+/* Dark theme */
+html.dark body {
   background: linear-gradient(135deg, rgb(15, 23, 42) 0%, rgb(30, 41, 59) 100%);
+  color: rgb(248, 250, 252);
+  min-height: 100vh;
 }
 
-.light body {
-  background: linear-gradient(135deg, rgb(241, 245, 249) 0%, rgb(226, 232, 240) 100%);
-}
+/* Light theme overrides for common elements */
+html:not(.dark) .bg-slate-900 { background-color: rgb(248, 250, 252) !important; }
+html:not(.dark) .bg-slate-900\/80 { background-color: rgba(248, 250, 252, 0.9) !important; }
+html:not(.dark) .bg-slate-800 { background-color: rgb(241, 245, 249) !important; }
+html:not(.dark) .bg-slate-700 { background-color: rgb(226, 232, 240) !important; }
+html:not(.dark) .text-slate-100 { color: rgb(15, 23, 42) !important; }
+html:not(.dark) .text-slate-200 { color: rgb(30, 41, 59) !important; }
+html:not(.dark) .text-slate-300 { color: rgb(51, 65, 85) !important; }
+html:not(.dark) .text-slate-400 { color: rgb(71, 85, 105) !important; }
+html:not(.dark) .border-slate-700 { border-color: rgb(203, 213, 225) !important; }
+html:not(.dark) .border-slate-700\/50 { border-color: rgba(203, 213, 225, 0.5) !important; }
+html:not(.dark) .border-slate-600 { border-color: rgb(203, 213, 225) !important; }
 
 [data-hydration-error] {
   display: none !important;
