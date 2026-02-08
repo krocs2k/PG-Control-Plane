@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 
-const LLM_API_URL = 'https://routellm.abacus.ai/v1/chat/completions';
+const LLM_API_URL = 'https://apps.abacus.ai/v1/chat/completions';
 const API_KEY = process.env.ABACUSAI_API_KEY;
 
 function parseJSONFromLLM(response: string): any {
@@ -47,7 +47,7 @@ async function callLLM(systemPrompt: string, userPrompt: string): Promise<string
       'Authorization': `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet',
+      model: 'gpt-4.1-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
