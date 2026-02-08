@@ -15,9 +15,9 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  // Redirect to dashboard if not admin or owner
+  // Redirect to dashboard if not ADMIN role
   const role = session.user.role;
-  if (role !== 'ADMIN' && role !== 'OWNER') {
+  if (role !== 'ADMIN') {
     redirect('/dashboard?error=unauthorized');
   }
 

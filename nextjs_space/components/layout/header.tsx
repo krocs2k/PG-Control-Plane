@@ -50,9 +50,9 @@ export function Header() {
 
   if (!session?.user) return null;
 
-  // Check admin status - must be ADMIN or OWNER role
+  // Check admin status - only ADMIN role can access Admin menu
   const userRole = session.user?.role;
-  const isAdmin = userRole === 'ADMIN' || userRole === 'OWNER';
+  const isAdmin = userRole === 'ADMIN';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -254,7 +254,7 @@ export function Header() {
               })}
             </div>
             
-            {/* Admin Section - Only visible to ADMIN and OWNER */}
+            {/* Admin Section - Only visible to ADMIN role */}
             {isAdmin && (
               <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                 <p className="px-4 py-2 text-xs font-medium text-amber-500 uppercase">Admin</p>
