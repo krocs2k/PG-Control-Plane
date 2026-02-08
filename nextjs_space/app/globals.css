@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: 241 245 249;
+  --background: 255 255 255;
   --foreground: 15 23 42;
 }
 
@@ -16,9 +16,9 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Light theme (default) */
+/* Light theme (default) - Clean white background */
 html:not(.dark) body {
-  background: linear-gradient(135deg, rgb(241, 245, 249) 0%, rgb(226, 232, 240) 100%);
+  background: rgb(250, 251, 252);
   color: rgb(15, 23, 42);
   min-height: 100vh;
 }
@@ -30,18 +30,59 @@ html.dark body {
   min-height: 100vh;
 }
 
-/* Light theme overrides for common elements */
-html:not(.dark) .bg-slate-900 { background-color: rgb(248, 250, 252) !important; }
-html:not(.dark) .bg-slate-900\/80 { background-color: rgba(248, 250, 252, 0.9) !important; }
-html:not(.dark) .bg-slate-800 { background-color: rgb(241, 245, 249) !important; }
-html:not(.dark) .bg-slate-700 { background-color: rgb(226, 232, 240) !important; }
+/* Light theme overrides - Crisp whites with visible borders */
+html:not(.dark) .bg-slate-900 { background-color: rgb(255, 255, 255) !important; }
+html:not(.dark) .bg-slate-900\/80 { background-color: rgba(255, 255, 255, 0.95) !important; }
+html:not(.dark) .bg-slate-900\/95 { background-color: rgba(255, 255, 255, 0.98) !important; }
+html:not(.dark) .bg-slate-800 { background-color: rgb(255, 255, 255) !important; }
+html:not(.dark) .bg-slate-800\/50 { background-color: rgba(255, 255, 255, 0.9) !important; }
+html:not(.dark) .bg-slate-800\/80 { background-color: rgba(255, 255, 255, 0.95) !important; }
+html:not(.dark) .bg-slate-700 { background-color: rgb(248, 250, 252) !important; }
+html:not(.dark) .bg-slate-700\/50 { background-color: rgba(248, 250, 252, 0.8) !important; }
+html:not(.dark) .bg-slate-600 { background-color: rgb(241, 245, 249) !important; }
+
+/* Light theme text colors */
 html:not(.dark) .text-slate-100 { color: rgb(15, 23, 42) !important; }
 html:not(.dark) .text-slate-200 { color: rgb(30, 41, 59) !important; }
 html:not(.dark) .text-slate-300 { color: rgb(51, 65, 85) !important; }
-html:not(.dark) .text-slate-400 { color: rgb(71, 85, 105) !important; }
-html:not(.dark) .border-slate-700 { border-color: rgb(203, 213, 225) !important; }
-html:not(.dark) .border-slate-700\/50 { border-color: rgba(203, 213, 225, 0.5) !important; }
-html:not(.dark) .border-slate-600 { border-color: rgb(203, 213, 225) !important; }
+html:not(.dark) .text-slate-400 { color: rgb(100, 116, 139) !important; }
+html:not(.dark) .text-slate-500 { color: rgb(100, 116, 139) !important; }
+
+/* Light theme borders - More visible */
+html:not(.dark) .border-slate-700 { border-color: rgb(226, 232, 240) !important; }
+html:not(.dark) .border-slate-700\/50 { border-color: rgb(226, 232, 240) !important; }
+html:not(.dark) .border-slate-600 { border-color: rgb(226, 232, 240) !important; }
+html:not(.dark) .border-slate-800 { border-color: rgb(226, 232, 240) !important; }
+html:not(.dark) .border-slate-500 { border-color: rgb(203, 213, 225) !important; }
+
+/* Light theme cards - Add subtle shadow and border */
+html:not(.dark) [class*="rounded"][class*="bg-slate-800"],
+html:not(.dark) [class*="rounded"][class*="bg-slate-900"] {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+  border: 1px solid rgb(226, 232, 240) !important;
+}
+
+/* Light theme hover states */
+html:not(.dark) .hover\:bg-slate-700:hover { background-color: rgb(241, 245, 249) !important; }
+html:not(.dark) .hover\:bg-slate-800:hover { background-color: rgb(248, 250, 252) !important; }
+
+/* Light theme dividers */
+html:not(.dark) .divide-slate-700 > * + * { border-color: rgb(226, 232, 240) !important; }
+html:not(.dark) .divide-slate-800 > * + * { border-color: rgb(226, 232, 240) !important; }
+
+/* Light theme ring colors */
+html:not(.dark) .ring-slate-700 { --tw-ring-color: rgb(203, 213, 225) !important; }
+html:not(.dark) .ring-slate-800 { --tw-ring-color: rgb(203, 213, 225) !important; }
+
+/* Light theme cyan accents - slightly darker for better contrast */
+html:not(.dark) .text-cyan-400 { color: rgb(6, 182, 212) !important; }
+html:not(.dark) .text-cyan-500 { color: rgb(6, 182, 212) !important; }
+html:not(.dark) .bg-cyan-600\/20 { background-color: rgba(8, 145, 178, 0.15) !important; }
+
+/* Light theme gradient backgrounds */
+html:not(.dark) .from-slate-900 { --tw-gradient-from: rgb(255, 255, 255) !important; }
+html:not(.dark) .to-slate-800 { --tw-gradient-to: rgb(248, 250, 252) !important; }
+html:not(.dark) .via-slate-800 { --tw-gradient-via: rgb(248, 250, 252) !important; }
 
 [data-hydration-error] {
   display: none !important;
