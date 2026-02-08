@@ -38,7 +38,7 @@ import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
 
 export function Header() {
-  const { data: session } = useSession() || {};
+  const { data: session, status } = useSession() || {};
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,7 +50,9 @@ export function Header() {
 
   if (!session?.user) return null;
 
-  const isAdmin = session.user?.role === 'ADMIN' || session.user?.role === 'OWNER';
+  // Check admin status - must be ADMIN or OWNER role
+  const userRole = session.user?.role;
+  const isAdmin = userRole === 'ADMIN' || userRole === 'OWNER';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -251,6 +253,28 @@ export function Header() {
                 );
               })}
             </div>
+            
+            {/* Admin Section - Only visible to ADMIN and OWNER */}
+            {isAdmin && (
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                <p className="px-4 py-2 text-xs font-medium text-amber-500 uppercase">Admin</p>
+                {adminNavigation.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link key={item.name} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                      <Button
+                        variant={isActive ? 'secondary' : 'ghost'}
+                        className="w-full justify-start"
+                      >
+                        <Icon className="mr-2 h-4 w-4 text-amber-500 dark:text-amber-400" />
+                        {item.name}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
             
             <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2 px-4 py-2">
