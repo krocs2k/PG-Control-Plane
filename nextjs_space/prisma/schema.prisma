@@ -76,6 +76,7 @@ model User {
   mfaSecret       String?
   mfaBackupCodes  String[]
   mfaVerifiedAt   DateTime?
+  mfaEnforcedAt   DateTime?    // When MFA enforcement started for this user (deadline = this + grace period)
   // Security fields
   failedAttempts  Int          @default(0)
   lockedUntil     DateTime?
@@ -896,6 +897,36 @@ model SyncLog {
   @@index([nodeId])
   @@index([status])
   @@index([createdAt])
+}
+
+// MFA Settings for the entire application
+model MFASettings {
+  id                      String    @id @default(cuid())
+  mfaRequiredForAll       Boolean   @default(false)           // Require MFA for all users
+  mfaRequiredForDBAdmin   Boolean   @default(true)            // Require MFA to access DB Admin section
+  dbAdminMfaDisabledBy    String?                             // Admin who disabled DB Admin MFA
+  dbAdminMfaDisabledAt    DateTime?                           // When DB Admin MFA was disabled
+  mfaEnforcementStartedAt DateTime?                           // When MFA for all was enabled
+  mfaGracePeriodDays      Int       @default(3)               // Grace period for users to enable MFA
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+}
+
+// Track MFA security alerts (admins without MFA, DB Admin MFA disabled, etc.)
+model MFASecurityAlert {
+  id          String    @id @default(cuid())
+  alertType   String                          // DB_ADMIN_MFA_DISABLED, ADMIN_WITHOUT_MFA
+  message     String    @db.Text
+  adminId     String?                         // The admin who triggered the alert (if applicable)
+  adminName   String?                         // Admin name for display
+  adminEmail  String?                         // Admin email for display
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime  @default(now())
+
+  @@index([alertType])
+  @@index([resolved])
 }
 
 // Superuser Credential Management

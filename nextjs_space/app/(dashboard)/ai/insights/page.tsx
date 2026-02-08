@@ -19,6 +19,8 @@ import {
   Eye,
   Wrench,
   Trash2,
+  ShieldOff,
+  Key,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +32,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+interface MFASecurityAlert {
+  id: string;
+  alertType: string;
+  message: string;
+  adminName: string | null;
+  adminEmail: string | null;
+  createdAt: string;
+}
+
+interface AdminWithoutMFA {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+}
 
 interface Anomaly {
   id: string;
@@ -73,9 +91,22 @@ export default function AIInsightsPage() {
   const [detecting, setDetecting] = useState(false);
   const [forecasting, setForecasting] = useState(false);
   const [expandedAnomaly, setExpandedAnomaly] = useState<string | null>(null);
+  
+  // MFA Security Alerts
+  const [mfaSecurityAlerts, setMfaSecurityAlerts] = useState<MFASecurityAlert[]>([]);
+  const [adminsWithoutMFA, setAdminsWithoutMFA] = useState<AdminWithoutMFA[]>([]);
 
   useEffect(() => {
     fetchClusters();
+    
+    // Fetch MFA security alerts
+    fetch('/api/admin/mfa-settings')
+      .then(res => res.json())
+      .then(data => {
+        setMfaSecurityAlerts(data.securityAlerts || []);
+        setAdminsWithoutMFA(data.adminsWithoutMFA || []);
+      })
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -248,6 +279,55 @@ export default function AIInsightsPage() {
           </Button>
         </div>
       </div>
+
+      {/* MFA Security Warnings */}
+      {(mfaSecurityAlerts.filter(a => a.alertType === 'DB_ADMIN_MFA_DISABLED').length > 0 || adminsWithoutMFA.length > 0) && (
+        <Card className="bg-amber-500/5 border-amber-500/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-amber-400 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Security Warnings
+            </CardTitle>
+            <CardDescription className="text-amber-300/70">
+              These issues may affect system security and compliance
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* DB Admin MFA Disabled Alert */}
+            {mfaSecurityAlerts.filter(a => a.alertType === 'DB_ADMIN_MFA_DISABLED').map(alert => (
+              <div key={alert.id} className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <Key className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-red-300 font-medium">DB Admin MFA Disabled</p>
+                  <p className="text-red-400/80 text-sm">{alert.message}</p>
+                </div>
+              </div>
+            ))}
+
+            {/* Admins Without MFA */}
+            {adminsWithoutMFA.length > 0 && (
+              <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <ShieldOff className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-300 font-medium">
+                    {adminsWithoutMFA.length} Admin{adminsWithoutMFA.length > 1 ? 's' : ''} Without MFA
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {adminsWithoutMFA.map(admin => (
+                      <Badge
+                        key={admin.id}
+                        className="bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      >
+                        {admin.name || admin.email}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

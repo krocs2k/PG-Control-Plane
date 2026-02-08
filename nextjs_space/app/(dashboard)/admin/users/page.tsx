@@ -64,6 +64,36 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+
+interface MFASettings {
+  id: string;
+  mfaRequiredForAll: boolean;
+  mfaRequiredForDBAdmin: boolean;
+  dbAdminMfaDisabledBy: string | null;
+  dbAdminMfaDisabledAt: string | null;
+  mfaEnforcementStartedAt: string | null;
+  mfaGracePeriodDays: number;
+}
+
+interface MFASecurityAlert {
+  id: string;
+  alertType: string;
+  message: string;
+  adminId: string | null;
+  adminName: string | null;
+  adminEmail: string | null;
+  resolved: boolean;
+  createdAt: string;
+}
+
+interface AdminWithoutMFA {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  createdAt: string;
+}
 
 interface User {
   id: string;
@@ -154,9 +184,18 @@ export default function UserAdminPage() {
     status: 'ACTIVE',
   });
   const [newPassword, setNewPassword] = useState('');
+  
+  // MFA Settings state
+  const [mfaSettings, setMfaSettings] = useState<MFASettings | null>(null);
+  const [mfaSecurityAlerts, setMfaSecurityAlerts] = useState<MFASecurityAlert[]>([]);
+  const [adminsWithoutMFA, setAdminsWithoutMFA] = useState<AdminWithoutMFA[]>([]);
+  const [mfaSettingsLoading, setMfaSettingsLoading] = useState(false);
+  const [showDisableMfaDialog, setShowDisableMfaDialog] = useState(false);
+  const [disableMfaToken, setDisableMfaToken] = useState('');
 
   useEffect(() => {
     fetchUsers();
+    fetchMFASettings();
   }, []);
 
   const fetchUsers = async () => {
@@ -171,6 +210,85 @@ export default function UserAdminPage() {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMFASettings = async () => {
+    try {
+      const res = await fetch('/api/admin/mfa-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setMfaSettings(data.settings || null);
+        setMfaSecurityAlerts(data.securityAlerts || []);
+        setAdminsWithoutMFA(data.adminsWithoutMFA || []);
+      }
+    } catch (error) {
+      console.error('Error fetching MFA settings:', error);
+    }
+  };
+
+  const toggleMFAForAll = async () => {
+    try {
+      setMfaSettingsLoading(true);
+      const res = await fetch('/api/admin/mfa-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'toggle_mfa_for_all',
+          mfaRequiredForAll: !mfaSettings?.mfaRequiredForAll 
+        }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setMfaSettings(prev => prev ? { ...prev, mfaRequiredForAll: data.mfaRequiredForAll } : null);
+        fetchMFASettings();
+        fetchUsers();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update MFA settings');
+      }
+    } catch (error) {
+      console.error('Error toggling MFA for all:', error);
+    } finally {
+      setMfaSettingsLoading(false);
+    }
+  };
+
+  const toggleDBAdminMFA = async (token?: string) => {
+    try {
+      setMfaSettingsLoading(true);
+      const isDisabling = mfaSettings?.mfaRequiredForDBAdmin;
+      
+      const res = await fetch('/api/admin/mfa-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: isDisabling ? 'disable_db_admin_mfa' : 'toggle_db_admin_mfa',
+          mfaRequiredForDBAdmin: !mfaSettings?.mfaRequiredForDBAdmin,
+          mfaToken: token,
+        }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setMfaSettings(prev => prev ? { ...prev, mfaRequiredForDBAdmin: data.mfaRequiredForDBAdmin } : null);
+        setShowDisableMfaDialog(false);
+        setDisableMfaToken('');
+        fetchMFASettings();
+      } else {
+        const error = await res.json();
+        if (error.mfaRequired) {
+          // Show MFA verification dialog
+          setShowDisableMfaDialog(true);
+        } else {
+          alert(error.error || 'Failed to update MFA settings');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling DB Admin MFA:', error);
+    } finally {
+      setMfaSettingsLoading(false);
     }
   };
 
@@ -427,6 +545,111 @@ export default function UserAdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* MFA Settings Section */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Shield className="h-5 w-5 text-purple-400" />
+              MFA Security Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* MFA Toggles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Require MFA for All Users */}
+              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-400" />
+                    <span className="font-medium text-white">Require MFA for All Users</span>
+                  </div>
+                  <p className="text-sm text-slate-400">
+                    Users will have {mfaSettings?.mfaGracePeriodDays || 3} days to enable MFA after login
+                  </p>
+                  {mfaSettings?.mfaRequiredForAll && mfaSettings?.mfaEnforcementStartedAt && (
+                    <p className="text-xs text-amber-400">
+                      Enforcement started: {new Date(mfaSettings.mfaEnforcementStartedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <Switch
+                  checked={mfaSettings?.mfaRequiredForAll || false}
+                  onCheckedChange={toggleMFAForAll}
+                  disabled={mfaSettingsLoading}
+                  className="data-[state=checked]:bg-blue-600"
+                />
+              </div>
+
+              {/* Require MFA for DB Admin Access */}
+              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-amber-400" />
+                    <span className="font-medium text-white">Require MFA for DB Admin Access</span>
+                  </div>
+                  <p className="text-sm text-slate-400">
+                    Admins must verify MFA each time they access DB Admin
+                  </p>
+                  {!mfaSettings?.mfaRequiredForDBAdmin && mfaSettings?.dbAdminMfaDisabledAt && (
+                    <p className="text-xs text-red-400">
+                      Disabled by admin on {new Date(mfaSettings.dbAdminMfaDisabledAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <Switch
+                  checked={mfaSettings?.mfaRequiredForDBAdmin || false}
+                  onCheckedChange={() => toggleDBAdminMFA()}
+                  disabled={mfaSettingsLoading}
+                  className="data-[state=checked]:bg-amber-600"
+                />
+              </div>
+            </div>
+
+            {/* Security Alerts */}
+            {(mfaSecurityAlerts.length > 0 || adminsWithoutMFA.length > 0) && (
+              <div className="space-y-4">
+                <h3 className="text-white font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-400" />
+                  Security Alerts
+                </h3>
+                
+                {/* DB Admin MFA Disabled Alert */}
+                {mfaSecurityAlerts.filter(a => a.alertType === 'DB_ADMIN_MFA_DISABLED').map(alert => (
+                  <div key={alert.id} className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <XCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-red-300 font-medium">{alert.message}</p>
+                      <p className="text-xs text-red-400 mt-1">
+                        {new Date(alert.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Admins Without MFA */}
+                {adminsWithoutMFA.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-amber-300 text-sm">
+                      {adminsWithoutMFA.length} admin{adminsWithoutMFA.length > 1 ? 's' : ''} without MFA enabled:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {adminsWithoutMFA.map(admin => (
+                        <Badge
+                          key={admin.id}
+                          className="bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        >
+                          <ShieldOff className="h-3 w-3 mr-1" />
+                          {admin.name || admin.email} ({admin.role})
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="bg-slate-800/50 border-slate-700">
@@ -945,6 +1168,59 @@ export default function UserAdminPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* MFA Verification Dialog for Disabling DB Admin MFA */}
+        <Dialog open={showDisableMfaDialog} onOpenChange={setShowDisableMfaDialog}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-amber-400" />
+                MFA Verification Required
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Enter your MFA code to disable DB Admin MFA requirement. This action will be logged.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+                <p className="text-sm text-amber-300">
+                  Disabling MFA for DB Admin access reduces security. This change will be visible in security alerts.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">Enter your 6-digit MFA code</Label>
+                <Input
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={disableMfaToken}
+                  onChange={(e) => setDisableMfaToken(e.target.value.replace(/\D/g, ''))}
+                  className="bg-slate-700 border-slate-600 text-center text-2xl tracking-widest"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDisableMfaDialog(false);
+                  setDisableMfaToken('');
+                }}
+                className="border-slate-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => toggleDBAdminMFA(disableMfaToken)}
+                disabled={disableMfaToken.length !== 6 || mfaSettingsLoading}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {mfaSettingsLoading ? 'Verifying...' : 'Confirm & Disable'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* MFA Setup Dialog */}
         <Dialog open={showMFASetup} onOpenChange={setShowMFASetup}>

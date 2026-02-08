@@ -189,6 +189,12 @@ export function Header() {
                 {session.user?.role}
               </span>
             </div>
+            <Link href="/profile">
+              <Button variant="ghost" size="sm">
+                <User className="h-4 w-4 mr-1" />
+                Profile
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
               <LogOut className="h-4 w-4 mr-1" />
               Sign out
@@ -251,6 +257,12 @@ export function Header() {
                 <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                 <span className="text-sm text-slate-700 dark:text-slate-300">{session.user?.email}</span>
               </div>
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  <User className="h-4 w-4 mr-2" />
+                  My Profile
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-red-400"

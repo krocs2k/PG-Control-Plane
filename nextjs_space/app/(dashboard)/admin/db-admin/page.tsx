@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Key,
@@ -22,11 +23,23 @@ import {
   Calendar,
   RotateCcw,
   Send,
+  Smartphone,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,6 +94,7 @@ interface Node {
 }
 
 export default function DBAdminPage() {
+  const router = useRouter();
   const [credential, setCredential] = useState<Credential | null>(null);
   const [propagations, setPropagations] = useState<PropagationStatus[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -91,6 +105,92 @@ export default function DBAdminPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmRotate, setConfirmRotate] = useState(false);
   const [confirmPropagate, setConfirmPropagate] = useState(false);
+
+  // MFA Gate state
+  const [mfaRequired, setMfaRequired] = useState<boolean | null>(null);
+  const [mfaVerified, setMfaVerified] = useState(false);
+  const [showMfaPrompt, setShowMfaPrompt] = useState(false);
+  const [showMfaVerify, setShowMfaVerify] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaNotSetup, setMfaNotSetup] = useState(false);
+  const [mfaVerifying, setMfaVerifying] = useState(false);
+
+  // Check MFA requirement on mount
+  useEffect(() => {
+    const checkMfaAccess = async () => {
+      try {
+        const res = await fetch('/api/admin/mfa-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check_db_admin_access' }),
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.allowed) {
+            setMfaRequired(false);
+            setMfaVerified(true);
+          } else if (data.mfaRequired) {
+            setMfaRequired(true);
+            if (data.mfaNotSetup) {
+              setMfaNotSetup(true);
+            }
+            setShowMfaPrompt(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking MFA access:', error);
+        // Allow access if MFA check fails
+        setMfaVerified(true);
+      }
+    };
+
+    checkMfaAccess();
+  }, []);
+
+  const handleMfaPromptProceed = () => {
+    setShowMfaPrompt(false);
+    if (mfaNotSetup) {
+      // Redirect to profile to setup MFA
+      router.push('/profile');
+    } else {
+      setShowMfaVerify(true);
+    }
+  };
+
+  const handleMfaPromptCancel = () => {
+    setShowMfaPrompt(false);
+    router.back();
+  };
+
+  const verifyMfaForAccess = async () => {
+    try {
+      setMfaVerifying(true);
+      const res = await fetch('/api/admin/mfa-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_db_admin_mfa', token: mfaToken }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.verified) {
+          setMfaVerified(true);
+          setShowMfaVerify(false);
+          setMfaToken('');
+          toast.success('MFA verified successfully');
+        }
+      } else {
+        const error = await res.json();
+        toast.error(error.error || 'Invalid MFA token');
+      }
+    } catch (error) {
+      console.error('Error verifying MFA:', error);
+      toast.error('Failed to verify MFA');
+    } finally {
+      setMfaVerifying(false);
+    }
+  };
 
   const fetchCredentials = useCallback(async () => {
     try {
@@ -111,8 +211,10 @@ export default function DBAdminPage() {
   }, []);
 
   useEffect(() => {
-    fetchCredentials();
-  }, [fetchCredentials]);
+    if (mfaVerified) {
+      fetchCredentials();
+    }
+  }, [fetchCredentials, mfaVerified]);
 
   const initializeCredentials = async () => {
     setActionLoading('initialize');
@@ -297,10 +399,103 @@ END
 # Option 2: If you have docker-compose running PostgreSQL
 docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER pg_control_plane WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${currentPassword}' " 2>/dev/null || docker exec -it <postgres_container_name> psql -U postgres -c "ALTER USER pg_control_plane WITH PASSWORD '${currentPassword}'"`;
 
-  if (loading) {
+  // Show loading while checking MFA or loading credentials
+  if (loading || mfaRequired === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+      </div>
+    );
+  }
+
+  // Show MFA prompt if not verified yet
+  if (mfaRequired && !mfaVerified) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 flex items-center justify-center">
+        {/* MFA Prompt Dialog */}
+        <AlertDialog open={showMfaPrompt} onOpenChange={setShowMfaPrompt}>
+          <AlertDialogContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-slate-900 dark:text-white flex items-center gap-2">
+                <Shield className="h-5 w-5 text-amber-500" />
+                MFA Authentication Required
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
+                {mfaNotSetup
+                  ? 'You need to set up MFA before accessing DB Admin. Click proceed to go to your profile and configure MFA.'
+                  : 'MFA authentication is required to access the DB Admin section. Do you want to proceed?'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleMfaPromptCancel} className="bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600">
+                No
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleMfaPromptProceed} className="bg-amber-600 hover:bg-amber-700">
+                Yes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* MFA Verification Dialog */}
+        <Dialog open={showMfaVerify} onOpenChange={setShowMfaVerify}>
+          <DialogContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-amber-500" />
+                Enter MFA Code
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400">
+                Enter your 6-digit code from your authenticator app to access DB Admin.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-slate-700 dark:text-slate-300">MFA Code</Label>
+                <Input
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={mfaToken}
+                  onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ''))}
+                  className="bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-center text-2xl tracking-widest"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && mfaToken.length === 6) {
+                      verifyMfaForAccess();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowMfaVerify(false);
+                  router.back();
+                }}
+                className="border-slate-300 dark:border-slate-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={verifyMfaForAccess}
+                disabled={mfaToken.length !== 6 || mfaVerifying}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {mfaVerifying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify & Access'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
