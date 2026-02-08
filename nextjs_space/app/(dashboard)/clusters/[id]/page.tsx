@@ -138,6 +138,8 @@ export default function ClusterDetailPage() {
     syncEnabled: false,
     replicationEnabled: true,
   });
+  const [originalConnectionString, setOriginalConnectionString] = useState<string | null>(null);
+  const [connectionStringModified, setConnectionStringModified] = useState(false);
   const [savingNode, setSavingNode] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<{
@@ -146,6 +148,17 @@ export default function ClusterDetailPage() {
     pgVersion?: string;
   } | null>(null);
   const [lifecycleLoading, setLifecycleLoading] = useState<string | null>(null);
+
+  // Helper function to mask password in connection string
+  function maskConnectionString(connStr: string): string {
+    if (!connStr) return '';
+    // Match postgresql://user:password@host pattern
+    const match = connStr.match(/^(postgres(?:ql)?:\/\/)([^:]+):([^@]+)@(.*)$/);
+    if (match) {
+      return `${match[1]}${match[2]}:••••••••@${match[4]}`;
+    }
+    return connStr;
+  }
   const [syncingNode, setSyncingNode] = useState<string | null>(null);
 
   const clusterId = params?.id as string;
@@ -216,15 +229,20 @@ export default function ClusterDetailPage() {
       syncEnabled: false,
       replicationEnabled: true,
     });
+    setOriginalConnectionString(null);
+    setConnectionStringModified(false);
     setConnectionTestResult(null);
     setIsNodeDialogOpen(true);
   }
 
   function openEditNode(node: Node) {
     setEditingNode(node);
+    const originalConnStr = node.connectionString || `postgresql://${node.host}:${node.port}`;
+    setOriginalConnectionString(originalConnStr);
+    setConnectionStringModified(false);
     setNodeForm({
       name: node.name,
-      connectionString: node.connectionString || `postgresql://${node.host}:${node.port}`,
+      connectionString: maskConnectionString(originalConnStr),
       role: node.role,
       status: node.status,
       syncEnabled: node.syncEnabled ?? false,
@@ -234,16 +252,28 @@ export default function ClusterDetailPage() {
     setIsNodeDialogOpen(true);
   }
 
+  function handleConnectionStringChange(value: string) {
+    setNodeForm({ ...nodeForm, connectionString: value });
+    // Mark as modified if editing and the value differs from the masked version
+    if (editingNode && originalConnectionString) {
+      const maskedOriginal = maskConnectionString(originalConnectionString);
+      setConnectionStringModified(value !== maskedOriginal);
+    }
+  }
+
   async function handleTestConnection() {
     if (!nodeForm.connectionString) return;
     setTestingConnection(true);
     setConnectionTestResult(null);
 
     try {
-      // Validate connection string format
-      const connStr = nodeForm.connectionString.trim();
-      const hasCredentials = connStr.includes('@');
-      const isValidFormat = connStr.startsWith('postgresql://') || connStr.startsWith('postgres://');
+      // Use original connection string if editing and not modified
+      const connStrToTest = (editingNode && !connectionStringModified && originalConnectionString)
+        ? originalConnectionString
+        : nodeForm.connectionString.trim();
+      
+      const hasCredentials = connStrToTest.includes('@') && !connStrToTest.includes('••••••••');
+      const isValidFormat = connStrToTest.startsWith('postgresql://') || connStrToTest.startsWith('postgres://');
 
       // Simulate connection test for demo
       await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -256,8 +286,17 @@ export default function ClusterDetailPage() {
       } else if (!hasCredentials) {
         setConnectionTestResult({
           success: false,
-          error: 'Authentication required. Include credentials in connection string: postgresql://user:password@host:port/database',
+          error: editingNode && !connectionStringModified
+            ? 'Using existing credentials for connection test'
+            : 'Authentication required. Include credentials in connection string: postgresql://user:password@host:port/database',
         });
+        // If editing with unchanged credentials, still show success
+        if (editingNode && !connectionStringModified && originalConnectionString) {
+          setConnectionTestResult({
+            success: true,
+            pgVersion: '15.4',
+          });
+        }
       } else {
         setConnectionTestResult({
           success: true,
@@ -277,14 +316,21 @@ export default function ClusterDetailPage() {
   async function handleSaveNode() {
     if (!nodeForm.name || !nodeForm.connectionString) return;
     
-    // Validate connection string has credentials
-    const connStr = nodeForm.connectionString.trim();
-    if (!connStr.includes('@')) {
-      setConnectionTestResult({
-        success: false,
-        error: 'Connection string must include authentication credentials (user:password@host)',
-      });
-      return;
+    // Determine the connection string to save
+    // If editing and not modified, use the original; otherwise use the form value
+    const connectionStringToSave = (editingNode && !connectionStringModified && originalConnectionString)
+      ? originalConnectionString
+      : nodeForm.connectionString.trim();
+    
+    // Validate connection string has credentials (skip validation for masked strings when not modified)
+    if (connectionStringModified || !editingNode) {
+      if (!connectionStringToSave.includes('@') || connectionStringToSave.includes('••••••••')) {
+        setConnectionTestResult({
+          success: false,
+          error: 'Connection string must include authentication credentials (user:password@host)',
+        });
+        return;
+      }
     }
 
     setSavingNode(true);
@@ -295,7 +341,7 @@ export default function ClusterDetailPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: nodeForm.name,
-            connectionString: nodeForm.connectionString,
+            connectionString: connectionStringToSave,
             role: nodeForm.role,
             status: nodeForm.status,
             syncEnabled: nodeForm.syncEnabled,
@@ -1100,13 +1146,19 @@ export default function ClusterDetailPage() {
                 id="connection-string"
                 placeholder="postgresql://username:password@hostname:5432/database?sslmode=require"
                 value={nodeForm.connectionString}
-                onChange={(e) => setNodeForm({ ...nodeForm, connectionString: e.target.value })}
+                onChange={(e) => handleConnectionStringChange(e.target.value)}
                 className="font-mono text-sm bg-slate-800/50 border-slate-600"
                 rows={2}
               />
-              <p className="text-xs text-slate-400">
-                Include authentication in the connection string: <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-400">postgresql://user:password@host:port/database</code>
-              </p>
+              {editingNode && !connectionStringModified ? (
+                <p className="text-xs text-amber-400/80">
+                  Password is masked for security. Leave unchanged to keep existing credentials, or enter a new full connection string to update.
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  Include authentication in the connection string: <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-400">postgresql://user:password@host:port/database</code>
+                </p>
+              )}
             </div>
 
             {/* Test Connection Result */}
