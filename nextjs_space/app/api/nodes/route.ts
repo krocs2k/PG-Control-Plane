@@ -324,14 +324,38 @@ export async function PATCH(request: Request) {
           return NextResponse.json({ error: 'Sync is not enabled for this node' }, { status: 400 });
         }
 
+        if (!node.connectionString) {
+          return NextResponse.json({ error: 'No connection string configured. Authentication required for sync.' }, { status: 400 });
+        }
+
+        // Test connection first using stored credentials
+        const connectionTest = await testDatabaseConnection(node.connectionString);
+        if (!connectionTest.success) {
+          await prisma.node.update({
+            where: { id: nodeId },
+            data: {
+              syncStatus: 'FAILED',
+              syncError: `Authentication failed: ${connectionTest.error}`,
+            },
+          });
+          return NextResponse.json({ 
+            error: 'Sync failed: Unable to authenticate with database', 
+            details: connectionTest.error 
+          }, { status: 400 });
+        }
+
         // Update sync status to syncing
         await prisma.node.update({
           where: { id: nodeId },
-          data: { syncStatus: 'SYNCING' },
+          data: { syncStatus: 'SYNCING', syncError: null },
         });
 
-        // Simulate sync process (in production, would perform actual sync)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // In production, this would execute actual sync operations using node.connectionString:
+        // 1. Connect to source (primary) and target (this node) databases
+        // 2. Compare schemas and apply DDL changes
+        // 3. Sync data using pg_dump/pg_restore or logical replication
+        // Simulate sync process with authentication context
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         // Update to synced
         const updatedNode = await prisma.node.update({
@@ -340,6 +364,8 @@ export async function PATCH(request: Request) {
             syncStatus: 'SYNCED',
             lastSyncAt: new Date(),
             syncError: null,
+            connectionVerified: true,
+            lastConnectionTest: new Date(),
           },
         });
 
@@ -348,18 +374,36 @@ export async function PATCH(request: Request) {
           entityType: 'Node',
           entityId: nodeId,
           action: 'SYNC',
-          afterState: { syncStatus: 'SYNCED' },
+          afterState: { syncStatus: 'SYNCED', authenticatedWith: 'connectionString' },
         });
 
         return NextResponse.json({
           success: true,
           syncStatus: updatedNode.syncStatus,
           lastSyncAt: updatedNode.lastSyncAt,
+          authenticated: true,
         });
       }
 
       case 'setup-replication': {
+        if (!node.connectionString) {
+          return NextResponse.json({ error: 'Connection string required for replication setup. Authentication needed.' }, { status: 400 });
+        }
+
+        // Test connection first using stored credentials
+        const connectionTest = await testDatabaseConnection(node.connectionString);
+        if (!connectionTest.success) {
+          return NextResponse.json({ 
+            error: 'Replication setup failed: Unable to authenticate with database', 
+            details: connectionTest.error 
+          }, { status: 400 });
+        }
+
         // Setup replication slot
+        // In production, this would:
+        // 1. Connect to the primary using its connection string
+        // 2. Execute: SELECT pg_create_physical_replication_slot('slot_name')
+        // 3. Configure recovery.conf on this replica with primary_conninfo from node.connectionString
         const slotName = `replica_${node.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
         
         const updatedNode = await prisma.node.update({
@@ -367,6 +411,8 @@ export async function PATCH(request: Request) {
           data: {
             replicationEnabled: true,
             replicationSlot: slotName,
+            connectionVerified: true,
+            lastConnectionTest: new Date(),
           },
         });
 
@@ -375,12 +421,13 @@ export async function PATCH(request: Request) {
           entityType: 'Node',
           entityId: nodeId,
           action: 'SETUP_REPLICATION',
-          afterState: { replicationSlot: slotName },
+          afterState: { replicationSlot: slotName, authenticatedWith: 'connectionString' },
         });
 
         return NextResponse.json({
           success: true,
           replicationSlot: slotName,
+          authenticated: true,
         });
       }
 

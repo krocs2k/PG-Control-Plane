@@ -35,7 +35,6 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
-  Copy,
   Plug,
   GitMerge,
 } from 'lucide-react';
@@ -503,9 +502,7 @@ export default function ClusterDetailPage() {
     }
   }
 
-  function copyConnectionString(connStr: string) {
-    navigator.clipboard.writeText(connStr);
-  }
+
 
   if (loading) {
     return (
@@ -753,16 +750,8 @@ export default function ClusterDetailPage() {
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <code className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
-                            {primaryNode.connectionString || `${primaryNode.host}:${primaryNode.port}`}
+                            {primaryNode.host}:{primaryNode.port}
                           </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyConnectionString(primaryNode.connectionString || `${primaryNode.host}:${primaryNode.port}`)}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
                         </div>
                         {primaryNode.pgVersion && (
                           <p className="text-xs text-slate-500 mt-1">PostgreSQL {primaryNode.pgVersion}</p>
@@ -897,16 +886,8 @@ export default function ClusterDetailPage() {
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <code className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
-                            {node.connectionString || `${node.host}:${node.port}`}
+                            {node.host}:{node.port}
                           </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyConnectionString(node.connectionString || `${node.host}:${node.port}`)}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
                         </div>
                         {node.pgVersion && (
                           <p className="text-xs text-slate-500 mt-1">PostgreSQL {node.pgVersion}</p>
