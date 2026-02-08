@@ -1,6 +1,6 @@
 generator client {
     provider = "prisma-client-js"
-    binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x", "debian-openssl-3.0.x"]
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -136,19 +136,52 @@ model Cluster {
   updatedAt       DateTime        @updatedAt
 }
 
+enum NodeSyncStatus {
+  PENDING
+  SYNCING
+  SYNCED
+  FAILED
+  NOT_CONFIGURED
+}
+
 model Node {
-  id            String     @id @default(cuid())
-  name          String
-  host          String
-  port          Int
-  role          NodeRole   @default(REPLICA)
-  status        NodeStatus @default(OFFLINE)
-  routingWeight Int        @default(100)
-  priority      Int        @default(1)
-  clusterId     String
-  cluster       Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                String         @id @default(cuid())
+  name              String
+  host              String
+  port              Int
+  connectionString  String?        @db.Text
+  // Database authentication
+  dbUser            String?
+  dbPasswordHash    String?        @db.Text
+  sslEnabled        Boolean        @default(true)
+  sslMode           String         @default("require")
+  // Connection status
+  role              NodeRole       @default(REPLICA)
+  status            NodeStatus     @default(OFFLINE)
+  connectionVerified Boolean       @default(false)
+  lastConnectionTest DateTime?
+  connectionError   String?        @db.Text
+  // Routing
+  routingWeight     Int            @default(100)
+  priority          Int            @default(1)
+  // Sync & Replication
+  syncEnabled       Boolean        @default(false)
+  syncStatus        NodeSyncStatus @default(NOT_CONFIGURED)
+  lastSyncAt        DateTime?
+  syncError         String?        @db.Text
+  replicationEnabled Boolean       @default(true)
+  replicationSlot   String?
+  replicationLag    Int?           @default(0)
+  // Metadata
+  pgVersion         String?
+  dataDirectory     String?
+  clusterId         String
+  cluster           Cluster        @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([clusterId])
+  @@index([syncStatus])
 }
 
 enum FailoverStatus {

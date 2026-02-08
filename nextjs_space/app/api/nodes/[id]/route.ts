@@ -6,6 +6,71 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { createAuditLog } from '@/lib/audit';
 import { hasPermission } from '@/lib/types';
+import bcrypt from 'bcryptjs';
+
+// Parse PostgreSQL connection string
+function parseConnectionString(connStr: string): {
+  host: string;
+  port: number;
+  database?: string;
+  user?: string;
+  password?: string;
+  sslMode?: string;
+} | null {
+  try {
+    const regex = /^postgres(?:ql)?:\/\/(?:([^:]+):([^@]+)@)?([^:/]+):?(\d+)?(?:\/([^?]+))?(?:\?(.*))?$/;
+    const match = connStr.match(regex);
+    
+    if (!match) return null;
+    
+    const [, user, password, host, port, database, queryString] = match;
+    const params: Record<string, string> = {};
+    
+    if (queryString) {
+      queryString.split('&').forEach((param) => {
+        const [key, value] = param.split('=');
+        params[key] = decodeURIComponent(value);
+      });
+    }
+    
+    return {
+      host,
+      port: port ? parseInt(port, 10) : 5432,
+      database,
+      user,
+      password,
+      sslMode: params.sslmode || params.ssl_mode || 'require',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildConnectionString(
+  host: string,
+  port: number,
+  database?: string,
+  user?: string,
+  password?: string,
+  sslMode?: string
+): string {
+  let connStr = 'postgresql://';
+  if (user) {
+    connStr += encodeURIComponent(user);
+    if (password) {
+      connStr += ':' + encodeURIComponent(password);
+    }
+    connStr += '@';
+  }
+  connStr += `${host}:${port}`;
+  if (database) {
+    connStr += '/' + database;
+  }
+  if (sslMode) {
+    connStr += `?sslmode=${sslMode}`;
+  }
+  return connStr;
+}
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -23,7 +88,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Node not found' }, { status: 404 });
     }
 
-    return NextResponse.json(node);
+    // Mask sensitive data
+    return NextResponse.json({
+      ...node,
+      dbPasswordHash: node.dbPasswordHash ? '***' : null,
+      connectionString: node.connectionString
+        ? node.connectionString.replace(/:([^@]+)@/, ':***@')
+        : null,
+    });
   } catch (error) {
     console.error('Error fetching node:', error);
     return NextResponse.json({ error: 'Failed to fetch node' }, { status: 500 });
@@ -42,18 +114,103 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     const beforeState = await prisma.node.findUnique({ where: { id: params?.id } });
+    if (!beforeState) {
+      return NextResponse.json({ error: 'Node not found' }, { status: 404 });
+    }
+
     const body = await request.json();
-    const { name, host, port, role, status } = body ?? {};
+    const {
+      name,
+      connectionString,
+      dbUser,
+      dbPassword,
+      role,
+      status,
+      sslEnabled,
+      sslMode,
+      syncEnabled,
+      replicationEnabled,
+    } = body ?? {};
+
+    const updateData: Record<string, unknown> = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (role !== undefined) updateData.role = role;
+    if (status !== undefined) updateData.status = status;
+    if (sslEnabled !== undefined) updateData.sslEnabled = sslEnabled;
+    if (sslMode !== undefined) updateData.sslMode = sslMode;
+    if (syncEnabled !== undefined) {
+      updateData.syncEnabled = syncEnabled;
+      updateData.syncStatus = syncEnabled ? 'PENDING' : 'NOT_CONFIGURED';
+    }
+    if (replicationEnabled !== undefined) updateData.replicationEnabled = replicationEnabled;
+
+    // Handle connection string update
+    if (connectionString) {
+      const parsed = parseConnectionString(connectionString);
+      if (!parsed) {
+        return NextResponse.json(
+          { error: 'Invalid connection string format' },
+          { status: 400 }
+        );
+      }
+
+      const finalUser = dbUser || parsed.user;
+      const finalPassword = dbPassword || parsed.password;
+
+      if (!finalUser || !finalPassword) {
+        return NextResponse.json(
+          { error: 'Database credentials are required' },
+          { status: 400 }
+        );
+      }
+
+      const fullConnectionString = buildConnectionString(
+        parsed.host,
+        parsed.port,
+        parsed.database,
+        finalUser,
+        finalPassword,
+        sslMode || parsed.sslMode || 'require'
+      );
+
+      const passwordHash = await bcrypt.hash(finalPassword, 10);
+
+      updateData.host = parsed.host;
+      updateData.port = parsed.port;
+      updateData.connectionString = fullConnectionString;
+      updateData.dbUser = finalUser;
+      updateData.dbPasswordHash = passwordHash;
+      updateData.connectionVerified = false;
+      updateData.connectionError = null;
+    } else if (dbUser || dbPassword) {
+      // Update credentials only
+      if (dbUser) updateData.dbUser = dbUser;
+      if (dbPassword) {
+        const passwordHash = await bcrypt.hash(dbPassword, 10);
+        updateData.dbPasswordHash = passwordHash;
+        
+        // Rebuild connection string with new password if we have one
+        if (beforeState.connectionString) {
+          const parsed = parseConnectionString(beforeState.connectionString);
+          if (parsed) {
+            updateData.connectionString = buildConnectionString(
+              parsed.host,
+              parsed.port,
+              parsed.database,
+              dbUser || beforeState.dbUser || parsed.user,
+              dbPassword,
+              sslMode || beforeState.sslMode || parsed.sslMode
+            );
+          }
+        }
+      }
+      updateData.connectionVerified = false;
+    }
 
     const node = await prisma.node.update({
       where: { id: params?.id },
-      data: {
-        name,
-        host,
-        port: port ? parseInt(port, 10) : undefined,
-        role,
-        status,
-      },
+      data: updateData,
     });
 
     await createAuditLog({
@@ -61,11 +218,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       entityType: 'Node',
       entityId: node.id,
       action: 'UPDATE',
-      beforeState,
-      afterState: node,
+      beforeState: { ...beforeState, dbPasswordHash: '[REDACTED]', connectionString: '[REDACTED]' },
+      afterState: { ...node, dbPasswordHash: '[REDACTED]', connectionString: '[REDACTED]' },
     });
 
-    return NextResponse.json(node);
+    return NextResponse.json({
+      ...node,
+      dbPasswordHash: '***',
+      connectionString: node.connectionString
+        ? node.connectionString.replace(/:([^@]+)@/, ':***@')
+        : null,
+    });
   } catch (error) {
     console.error('Error updating node:', error);
     return NextResponse.json({ error: 'Failed to update node' }, { status: 500 });
@@ -92,7 +255,9 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       entityType: 'Node',
       entityId: params?.id,
       action: 'DELETE',
-      beforeState,
+      beforeState: beforeState
+        ? { ...beforeState, dbPasswordHash: '[REDACTED]', connectionString: '[REDACTED]' }
+        : undefined,
     });
 
     return NextResponse.json({ success: true });

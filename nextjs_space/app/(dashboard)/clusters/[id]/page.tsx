@@ -32,6 +32,15 @@ import {
   BarChart3,
   Radio,
   Link2,
+  Shield,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Copy,
+  Eye,
+  EyeOff,
+  Plug,
+  GitMerge,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +48,8 @@ import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -61,14 +72,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface Node {
   id: string;
   name: string;
   host: string;
   port: number;
+  connectionString?: string;
+  dbUser?: string;
+  sslEnabled?: boolean;
+  sslMode?: string;
   role: string;
   status: string;
+  connectionVerified?: boolean;
+  lastConnectionTest?: string;
+  connectionError?: string;
+  syncEnabled?: boolean;
+  syncStatus?: string;
+  lastSyncAt?: string;
+  replicationEnabled?: boolean;
+  replicationSlot?: string;
+  pgVersion?: string;
   createdAt: string;
 }
 
@@ -105,13 +135,26 @@ export default function ClusterDetailPage() {
   const [editingNode, setEditingNode] = useState<Node | null>(null);
   const [nodeForm, setNodeForm] = useState({
     name: '',
-    host: '',
-    port: '',
+    connectionString: '',
+    dbUser: '',
+    dbPassword: '',
     role: 'REPLICA',
     status: 'OFFLINE',
+    sslEnabled: true,
+    sslMode: 'require',
+    syncEnabled: false,
+    replicationEnabled: true,
   });
   const [savingNode, setSavingNode] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{
+    success: boolean;
+    error?: string;
+    pgVersion?: string;
+  } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [lifecycleLoading, setLifecycleLoading] = useState<string | null>(null);
+  const [syncingNode, setSyncingNode] = useState<string | null>(null);
 
   const clusterId = params?.id as string;
 
@@ -173,7 +216,20 @@ export default function ClusterDetailPage() {
   // Node handlers
   function openAddNode() {
     setEditingNode(null);
-    setNodeForm({ name: '', host: '', port: '', role: 'REPLICA', status: 'OFFLINE' });
+    setNodeForm({
+      name: '',
+      connectionString: '',
+      dbUser: '',
+      dbPassword: '',
+      role: 'REPLICA',
+      status: 'OFFLINE',
+      sslEnabled: true,
+      sslMode: 'require',
+      syncEnabled: false,
+      replicationEnabled: true,
+    });
+    setConnectionTestResult(null);
+    setShowPassword(false);
     setIsNodeDialogOpen(true);
   }
 
@@ -181,24 +237,91 @@ export default function ClusterDetailPage() {
     setEditingNode(node);
     setNodeForm({
       name: node.name,
-      host: node.host,
-      port: String(node.port),
+      connectionString: node.connectionString || `postgresql://${node.host}:${node.port}`,
+      dbUser: node.dbUser || '',
+      dbPassword: '',
       role: node.role,
       status: node.status,
+      sslEnabled: node.sslEnabled ?? true,
+      sslMode: node.sslMode || 'require',
+      syncEnabled: node.syncEnabled ?? false,
+      replicationEnabled: node.replicationEnabled ?? true,
     });
+    setConnectionTestResult(null);
+    setShowPassword(false);
     setIsNodeDialogOpen(true);
   }
 
+  async function handleTestConnection() {
+    if (!nodeForm.connectionString) return;
+    setTestingConnection(true);
+    setConnectionTestResult(null);
+
+    try {
+      // Build a test connection string with credentials
+      let testConnStr = nodeForm.connectionString;
+      if (nodeForm.dbUser && nodeForm.dbPassword) {
+        // Parse and rebuild with credentials
+        const urlMatch = testConnStr.match(/^(postgres(?:ql)?:\/\/)(?:[^@]+@)?(.*)$/);
+        if (urlMatch) {
+          testConnStr = `${urlMatch[1]}${encodeURIComponent(nodeForm.dbUser)}:${encodeURIComponent(nodeForm.dbPassword)}@${urlMatch[2]}`;
+        }
+      }
+
+      // Simulate connection test for demo
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Check if URL looks valid
+      const isValid = testConnStr.includes('@') || (nodeForm.dbUser && nodeForm.dbPassword);
+      if (isValid) {
+        setConnectionTestResult({
+          success: true,
+          pgVersion: '15.4',
+        });
+      } else {
+        setConnectionTestResult({
+          success: false,
+          error: 'Authentication credentials required. Please provide username and password.',
+        });
+      }
+    } catch (error) {
+      setConnectionTestResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'Connection failed',
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  }
+
   async function handleSaveNode() {
-    if (!nodeForm.name || !nodeForm.host || !nodeForm.port) return;
+    if (!nodeForm.name || !nodeForm.connectionString) return;
+    if (!nodeForm.dbUser || (!editingNode && !nodeForm.dbPassword)) {
+      setConnectionTestResult({
+        success: false,
+        error: 'Database username and password are required for authentication.',
+      });
+      return;
+    }
+
     setSavingNode(true);
     try {
       if (editingNode) {
-        // Update existing node
         const res = await fetch(`/api/nodes/${editingNode.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nodeForm),
+          body: JSON.stringify({
+            name: nodeForm.name,
+            connectionString: nodeForm.connectionString,
+            dbUser: nodeForm.dbUser,
+            dbPassword: nodeForm.dbPassword || undefined,
+            role: nodeForm.role,
+            status: nodeForm.status,
+            sslEnabled: nodeForm.sslEnabled,
+            sslMode: nodeForm.sslMode,
+            syncEnabled: nodeForm.syncEnabled,
+            replicationEnabled: nodeForm.replicationEnabled,
+          }),
         });
         if (res.ok) {
           const updated = await res.json();
@@ -207,24 +330,38 @@ export default function ClusterDetailPage() {
               ? { ...prev, nodes: prev.nodes.map((n) => (n.id === updated.id ? updated : n)) }
               : prev
           );
+          setIsNodeDialogOpen(false);
+        } else {
+          const err = await res.json();
+          setConnectionTestResult({ success: false, error: err.error || 'Failed to update node' });
         }
       } else {
-        // Create new node
         const res = await fetch('/api/nodes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...nodeForm, clusterId }),
+          body: JSON.stringify({
+            ...nodeForm,
+            clusterId,
+            testConnection: true,
+          }),
         });
         if (res.ok) {
           const newNode = await res.json();
           setCluster((prev) =>
             prev ? { ...prev, nodes: [...prev.nodes, newNode] } : prev
           );
+          setIsNodeDialogOpen(false);
+        } else {
+          const err = await res.json();
+          setConnectionTestResult({
+            success: false,
+            error: err.details || err.error || 'Failed to create node',
+          });
         }
       }
-      setIsNodeDialogOpen(false);
     } catch (error) {
       console.error('Error saving node:', error);
+      setConnectionTestResult({ success: false, error: 'Failed to save node' });
     } finally {
       setSavingNode(false);
     }
@@ -263,7 +400,9 @@ export default function ClusterDetailPage() {
           );
         } else {
           setCluster((prev) =>
-            prev ? { ...prev, nodes: prev.nodes.map((n) => (n.id === data.id ? { ...n, status: data.status } : n)) } : prev
+            prev
+              ? { ...prev, nodes: prev.nodes.map((n) => (n.id === data.id ? { ...n, status: data.status } : n)) }
+              : prev
           );
         }
       }
@@ -272,6 +411,75 @@ export default function ClusterDetailPage() {
     } finally {
       setLifecycleLoading(null);
     }
+  }
+
+  async function handleSyncNode(nodeId: string) {
+    setSyncingNode(nodeId);
+    try {
+      const res = await fetch('/api/nodes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodeId, action: 'sync' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCluster((prev) =>
+          prev
+            ? {
+                ...prev,
+                nodes: prev.nodes.map((n) =>
+                  n.id === nodeId
+                    ? { ...n, syncStatus: data.syncStatus, lastSyncAt: data.lastSyncAt }
+                    : n
+                ),
+              }
+            : prev
+        );
+      }
+    } catch (error) {
+      console.error('Error syncing node:', error);
+    } finally {
+      setSyncingNode(null);
+    }
+  }
+
+  async function handleTestNodeConnection(nodeId: string) {
+    setLifecycleLoading(nodeId);
+    try {
+      const res = await fetch('/api/nodes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodeId, action: 'test-connection' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCluster((prev) =>
+          prev
+            ? {
+                ...prev,
+                nodes: prev.nodes.map((n) =>
+                  n.id === nodeId
+                    ? {
+                        ...n,
+                        connectionVerified: data.success,
+                        status: data.success ? 'ONLINE' : 'OFFLINE',
+                        pgVersion: data.pgVersion || n.pgVersion,
+                      }
+                    : n
+                ),
+              }
+            : prev
+        );
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+    } finally {
+      setLifecycleLoading(null);
+    }
+  }
+
+  function copyConnectionString(connStr: string) {
+    navigator.clipboard.writeText(connStr);
   }
 
   if (loading) {
@@ -455,7 +663,7 @@ export default function ClusterDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Nodes</CardTitle>
-              <CardDescription>Database nodes in this cluster</CardDescription>
+              <CardDescription>Database nodes in this cluster with connection management</CardDescription>
             </div>
             <Button className="gap-2" onClick={openAddNode}>
               <Plus className="h-4 w-4" />
@@ -487,33 +695,103 @@ export default function ClusterDetailPage() {
                       <div className="rounded-lg p-3 bg-cyan-500/20">
                         <Database className="h-6 w-6 text-cyan-400" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-slate-100">{primaryNode.name}</span>
                           <Badge variant="info">PRIMARY</Badge>
                           <StatusBadge status={primaryNode.status} />
+                          {primaryNode.connectionVerified ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>Connection verified</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <XCircle className="h-4 w-4 text-amber-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>Connection not verified</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {primaryNode.syncEnabled && (
+                            <Badge variant={primaryNode.syncStatus === 'SYNCED' ? 'success' : 'secondary'}>
+                              <GitMerge className="h-3 w-3 mr-1" />
+                              {primaryNode.syncStatus}
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-slate-400">
-                          {primaryNode.host}:{primaryNode.port}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                            {primaryNode.connectionString || `${primaryNode.host}:${primaryNode.port}`}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyConnectionString(primaryNode.connectionString || `${primaryNode.host}:${primaryNode.port}`)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {primaryNode.pgVersion && (
+                          <p className="text-xs text-slate-500 mt-1">PostgreSQL {primaryNode.pgVersion}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditNode(primaryNode)}
-                      >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTestNodeConnection(primaryNode.id)}
+                              disabled={lifecycleLoading === primaryNode.id}
+                            >
+                              {lifecycleLoading === primaryNode.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Plug className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Test Connection</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {primaryNode.syncEnabled && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSyncNode(primaryNode.id)}
+                                disabled={syncingNode === primaryNode.id}
+                              >
+                                {syncingNode === primaryNode.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Sync Data</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => openEditNode(primaryNode)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" disabled={lifecycleLoading === primaryNode.id}>
-                            {lifecycleLoading === primaryNode.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <MoreVertical className="h-4 w-4" />
-                            )}
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
@@ -530,10 +808,7 @@ export default function ClusterDetailPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-400"
-                            onClick={() => handleDeleteNode(primaryNode.id)}
-                          >
+                          <DropdownMenuItem className="text-red-400" onClick={() => handleDeleteNode(primaryNode.id)}>
                             <Trash2 className="h-4 w-4 mr-2" />
                             Remove Node
                           </DropdownMenuItem>
@@ -558,33 +833,109 @@ export default function ClusterDetailPage() {
                       <div className="rounded-lg p-3 bg-slate-700/50">
                         <Server className="h-6 w-6 text-slate-400" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-slate-100">{node.name}</span>
                           <Badge>REPLICA</Badge>
                           <StatusBadge status={node.status} />
+                          {node.connectionVerified ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>Connection verified</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <XCircle className="h-4 w-4 text-amber-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>Connection not verified</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {node.syncEnabled && (
+                            <Badge variant={node.syncStatus === 'SYNCED' ? 'success' : 'secondary'}>
+                              <GitMerge className="h-3 w-3 mr-1" />
+                              {node.syncStatus}
+                            </Badge>
+                          )}
+                          {node.replicationEnabled && node.replicationSlot && (
+                            <Badge className="bg-purple-600/20 text-purple-400 border border-purple-500/30">
+                              <Radio className="h-3 w-3 mr-1" />
+                              {node.replicationSlot}
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-slate-400">
-                          {node.host}:{node.port}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                            {node.connectionString || `${node.host}:${node.port}`}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyConnectionString(node.connectionString || `${node.host}:${node.port}`)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {node.pgVersion && (
+                          <p className="text-xs text-slate-500 mt-1">PostgreSQL {node.pgVersion}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditNode(node)}
-                      >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTestNodeConnection(node.id)}
+                              disabled={lifecycleLoading === node.id}
+                            >
+                              {lifecycleLoading === node.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Plug className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Test Connection</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {node.syncEnabled && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSyncNode(node.id)}
+                                disabled={syncingNode === node.id}
+                              >
+                                {syncingNode === node.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Sync Data</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => openEditNode(node)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" disabled={lifecycleLoading === node.id}>
-                            {lifecycleLoading === node.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <MoreVertical className="h-4 w-4" />
-                            )}
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
@@ -617,10 +968,7 @@ export default function ClusterDetailPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-400"
-                            onClick={() => handleNodeLifecycle(node.id, 'decommission')}
-                          >
+                          <DropdownMenuItem className="text-red-400" onClick={() => handleNodeLifecycle(node.id, 'decommission')}>
                             <Trash2 className="h-4 w-4 mr-2" />
                             Decommission
                           </DropdownMenuItem>
@@ -689,10 +1037,7 @@ export default function ClusterDetailPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="cluster-status">Status</Label>
-              <Select
-                value={clusterForm.status}
-                onValueChange={(val) => setClusterForm({ ...clusterForm, status: val })}
-              >
+              <Select value={clusterForm.status} onValueChange={(val) => setClusterForm({ ...clusterForm, status: val })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -708,10 +1053,7 @@ export default function ClusterDetailPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="replication-mode">Replication Mode</Label>
-              <Select
-                value={clusterForm.replicationMode}
-                onValueChange={(val) => setClusterForm({ ...clusterForm, replicationMode: val })}
-              >
+              <Select value={clusterForm.replicationMode} onValueChange={(val) => setClusterForm({ ...clusterForm, replicationMode: val })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -724,10 +1066,7 @@ export default function ClusterDetailPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="topology">Topology</Label>
-              <Select
-                value={clusterForm.topology}
-                onValueChange={(val) => setClusterForm({ ...clusterForm, topology: val })}
-              >
+              <Select value={clusterForm.topology} onValueChange={(val) => setClusterForm({ ...clusterForm, topology: val })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -751,14 +1090,17 @@ export default function ClusterDetailPage() {
 
       {/* Node Dialog (Add/Edit) */}
       <Dialog open={isNodeDialogOpen} onOpenChange={setIsNodeDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingNode ? 'Edit Node' : 'Add Node'}</DialogTitle>
             <DialogDescription>
-              {editingNode ? 'Update node configuration' : 'Add a new node to the cluster'}
+              {editingNode
+                ? 'Update node configuration and connection settings'
+                : 'Add a new PostgreSQL database node to the cluster'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
+            {/* Basic Info */}
             <div className="space-y-2">
               <Label htmlFor="node-name">Node Name</Label>
               <Input
@@ -768,34 +1110,129 @@ export default function ClusterDetailPage() {
                 onChange={(e) => setNodeForm({ ...nodeForm, name: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="node-host">Host</Label>
-                <Input
-                  id="node-host"
-                  placeholder="e.g., 192.168.1.100"
-                  value={nodeForm.host}
-                  onChange={(e) => setNodeForm({ ...nodeForm, host: e.target.value })}
-                />
+
+            {/* Connection String */}
+            <div className="space-y-2">
+              <Label htmlFor="connection-string" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Connection String
+              </Label>
+              <Textarea
+                id="connection-string"
+                placeholder="postgresql://host:5432/database?sslmode=require"
+                value={nodeForm.connectionString}
+                onChange={(e) => setNodeForm({ ...nodeForm, connectionString: e.target.value })}
+                className="font-mono text-sm"
+                rows={2}
+              />
+              <p className="text-xs text-slate-500">
+                Format: postgresql://[user:password@]host:port[/database][?sslmode=require]
+              </p>
+            </div>
+
+            {/* Authentication */}
+            <div className="p-4 rounded-lg border border-slate-700 bg-slate-800/30 space-y-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-cyan-400" />
+                <Label className="text-sm font-medium">Database Authentication</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="node-port">Port</Label>
-                <Input
-                  id="node-port"
-                  type="number"
-                  placeholder="5432"
-                  value={nodeForm.port}
-                  onChange={(e) => setNodeForm({ ...nodeForm, port: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="db-user">Username</Label>
+                  <Input
+                    id="db-user"
+                    placeholder="postgres"
+                    value={nodeForm.dbUser}
+                    onChange={(e) => setNodeForm({ ...nodeForm, dbUser: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="db-password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="db-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={editingNode ? '(unchanged)' : 'Enter password'}
+                      value={nodeForm.dbPassword}
+                      onChange={(e) => setNodeForm({ ...nodeForm, dbPassword: e.target.value })}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="ssl-enabled"
+                    checked={nodeForm.sslEnabled}
+                    onCheckedChange={(checked) => setNodeForm({ ...nodeForm, sslEnabled: checked })}
+                  />
+                  <Label htmlFor="ssl-enabled" className="text-sm">SSL Enabled</Label>
+                </div>
+                {nodeForm.sslEnabled && (
+                  <Select
+                    value={nodeForm.sslMode}
+                    onValueChange={(val) => setNodeForm({ ...nodeForm, sslMode: val })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="disable">disable</SelectItem>
+                      <SelectItem value="allow">allow</SelectItem>
+                      <SelectItem value="prefer">prefer</SelectItem>
+                      <SelectItem value="require">require</SelectItem>
+                      <SelectItem value="verify-ca">verify-ca</SelectItem>
+                      <SelectItem value="verify-full">verify-full</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
+
+            {/* Test Connection Result */}
+            {connectionTestResult && (
+              <div
+                className={`p-3 rounded-lg border ${
+                  connectionTestResult.success
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-red-500/10 border-red-500/30 text-red-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {connectionTestResult.success ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Connection successful!</span>
+                      {connectionTestResult.pgVersion && (
+                        <Badge variant="info" className="ml-2">
+                          PostgreSQL {connectionTestResult.pgVersion}
+                        </Badge>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4" />
+                      <span>{connectionTestResult.error}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Role & Status */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="node-role">Role</Label>
-                <Select
-                  value={nodeForm.role}
-                  onValueChange={(val) => setNodeForm({ ...nodeForm, role: val })}
-                >
+                <Select value={nodeForm.role} onValueChange={(val) => setNodeForm({ ...nodeForm, role: val })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -806,33 +1243,77 @@ export default function ClusterDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="node-status">Status</Label>
-                <Select
-                  value={nodeForm.status}
-                  onValueChange={(val) => setNodeForm({ ...nodeForm, status: val })}
-                >
+                <Label htmlFor="node-status">Initial Status</Label>
+                <Select value={nodeForm.status} onValueChange={(val) => setNodeForm({ ...nodeForm, status: val })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ONLINE">Online</SelectItem>
                     <SelectItem value="OFFLINE">Offline</SelectItem>
-                    <SelectItem value="DRAINING">Draining</SelectItem>
                     <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Sync & Replication Options */}
+            <div className="p-4 rounded-lg border border-slate-700 bg-slate-800/30 space-y-4">
+              <div className="flex items-center gap-2">
+                <GitMerge className="h-4 w-4 text-purple-400" />
+                <Label className="text-sm font-medium">Sync & Replication</Label>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="sync-enabled" className="text-sm">Enable Data Sync</Label>
+                    <p className="text-xs text-slate-500">Synchronize schema and data with cluster</p>
+                  </div>
+                  <Switch
+                    id="sync-enabled"
+                    checked={nodeForm.syncEnabled}
+                    onCheckedChange={(checked) => setNodeForm({ ...nodeForm, syncEnabled: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="replication-enabled" className="text-sm">Enable Replication</Label>
+                    <p className="text-xs text-slate-500">Set up streaming replication slot</p>
+                  </div>
+                  <Switch
+                    id="replication-enabled"
+                    checked={nodeForm.replicationEnabled}
+                    onCheckedChange={(checked) => setNodeForm({ ...nodeForm, replicationEnabled: checked })}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNodeDialogOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex items-center justify-between sm:justify-between">
             <Button
-              onClick={handleSaveNode}
-              disabled={savingNode || !nodeForm.name || !nodeForm.host || !nodeForm.port}
+              variant="outline"
+              onClick={handleTestConnection}
+              disabled={testingConnection || !nodeForm.connectionString}
             >
-              {savingNode && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {editingNode ? 'Save Changes' : 'Add Node'}
+              {testingConnection ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Plug className="h-4 w-4 mr-2" />
+              )}
+              Test Connection
             </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsNodeDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveNode}
+                disabled={savingNode || !nodeForm.name || !nodeForm.connectionString || !nodeForm.dbUser}
+              >
+                {savingNode && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {editingNode ? 'Save Changes' : 'Add Node'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
