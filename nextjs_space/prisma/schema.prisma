@@ -897,3 +897,61 @@ model SyncLog {
   @@index([status])
   @@index([createdAt])
 }
+
+// Superuser Credential Management
+enum CredentialStatus {
+  ACTIVE
+  NEEDS_REENROLLMENT
+  SYNCING
+}
+
+model SuperuserCredential {
+  id                  String           @id @default(cuid())
+  username            String           @default("pg_control_plane")
+  currentPassword     String           @db.Text  // Stored in plaintext as requested
+  passwordHistory     String[]         // Last 6 passwords (stored in plaintext)
+  lastRotatedAt       DateTime         @default(now())
+  rotationIntervalDays Int             @default(45)
+  nextRotationAt      DateTime?
+  status              CredentialStatus @default(ACTIVE)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  propagations        CredentialPropagation[]
+}
+
+// Tracks password propagation to individual nodes
+model CredentialPropagation {
+  id              String              @id @default(cuid())
+  credentialId    String
+  credential      SuperuserCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  nodeId          String
+  clusterId       String
+  status          String              @default("PENDING")  // PENDING, SUCCESS, FAILED, NEEDS_REENROLLMENT
+  lastAttemptAt   DateTime?
+  successAt       DateTime?
+  errorMessage    String?             @db.Text
+  passwordUsed    String?             // Which password was successful (current or from history)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([credentialId, nodeId])
+  @@index([nodeId])
+  @@index([status])
+}
+
+// Alert for nodes needing re-enrollment
+model CredentialAlert {
+  id          String   @id @default(cuid())
+  nodeId      String
+  clusterId   String
+  alertType   String   @default("REENROLLMENT_REQUIRED")
+  message     String   @db.Text
+  resolved    Boolean  @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+
+  @@index([nodeId])
+  @@index([resolved])
+}

@@ -25,6 +25,7 @@ import {
   Telescope,
   Users,
   Network,
+  Key,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -60,6 +61,7 @@ export function Header() {
   const adminNavigation = [
     { name: 'User Management', href: '/admin/users', icon: Users, description: 'Manage users & MFA' },
     { name: 'Federation', href: '/admin/federation', icon: Network, description: 'Control Plane Clustering' },
+    { name: 'DB Admin', href: '/admin/db-admin', icon: Key, description: 'Superuser Credentials' },
   ];
 
   const aiNavigation = [

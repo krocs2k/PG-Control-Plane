@@ -1056,6 +1056,73 @@ export async function applyReplicationConfig(
   }
 }
 
+// Test node connection with specific credentials (for credential management)
+export async function testNodeConnection(config: {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  ssl: boolean;
+}): Promise<{ success: boolean; error?: string }> {
+  const client = new Client({
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    password: config.password,
+    database: config.database,
+    ssl: config.ssl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000,
+  });
+
+  try {
+    await client.connect();
+    await client.query('SELECT 1');
+    return { success: true };
+  } catch (error) {
+    const err = error as Error;
+    return { success: false, error: err.message };
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+// Change a user's password on a PostgreSQL server
+export async function changeUserPassword(config: {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  ssl: boolean;
+}, targetUser: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  const client = new Client({
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    password: config.password,
+    database: config.database,
+    ssl: config.ssl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000,
+  });
+
+  try {
+    await client.connect();
+    
+    // Use ALTER USER to change password - need to properly escape
+    // Using parameterized query is not possible for ALTER USER, so we need careful escaping
+    const escapedPassword = newPassword.replace(/'/g, "''");
+    await client.query(`ALTER USER "${targetUser}" WITH PASSWORD '${escapedPassword}'`);
+    
+    return { success: true };
+  } catch (error) {
+    const err = error as Error;
+    return { success: false, error: err.message };
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
 // Get database statistics
 export async function getDatabaseStats(connectionString: string): Promise<{
   databaseSize: number;
