@@ -7,101 +7,26 @@ import { prisma } from '@/lib/db';
 import { createAuditLog } from '@/lib/audit';
 import { hasPermission } from '@/lib/types';
 import bcrypt from 'bcryptjs';
+import {
+  parseConnectionString,
+  buildConnectionString,
+  testConnection,
+  compareSchemas,
+  syncData,
+  createReplicationSlot,
+  getReplicationStatus,
+  getDatabaseStats,
+} from '@/lib/postgres';
 
-// Parse PostgreSQL connection string
-function parseConnectionString(connStr: string): {
-  host: string;
-  port: number;
-  database?: string;
-  user?: string;
-  password?: string;
-  sslMode?: string;
-} | null {
-  try {
-    // Handle postgres:// or postgresql:// format
-    const regex = /^postgres(?:ql)?:\/\/(?:([^:]+):([^@]+)@)?([^:/]+):?(\d+)?(?:\/([^?]+))?(?:\?(.*))?$/;
-    const match = connStr.match(regex);
-    
-    if (!match) return null;
-    
-    const [, user, password, host, port, database, queryString] = match;
-    const params: Record<string, string> = {};
-    
-    if (queryString) {
-      queryString.split('&').forEach((param) => {
-        const [key, value] = param.split('=');
-        params[key] = decodeURIComponent(value);
-      });
-    }
-    
-    return {
-      host,
-      port: port ? parseInt(port, 10) : 5432,
-      database,
-      user,
-      password,
-      sslMode: params.sslmode || params.ssl_mode || 'require',
-    };
-  } catch {
-    return null;
-  }
-}
-
-// Build connection string from components
-function buildConnectionString(
-  host: string,
-  port: number,
-  database?: string,
-  user?: string,
-  password?: string,
-  sslMode?: string
-): string {
-  let connStr = 'postgresql://';
-  if (user) {
-    connStr += encodeURIComponent(user);
-    if (password) {
-      connStr += ':' + encodeURIComponent(password);
-    }
-    connStr += '@';
-  }
-  connStr += `${host}:${port}`;
-  if (database) {
-    connStr += '/' + database;
-  }
-  if (sslMode) {
-    connStr += `?sslmode=${sslMode}`;
-  }
-  return connStr;
-}
-
-// Simulate connection test (in production, would use pg library)
+// Wrapper for testConnection that returns expected format
 async function testDatabaseConnection(
   connectionString: string
 ): Promise<{ success: boolean; error?: string; pgVersion?: string }> {
-  // Simulated connection test
-  // In production, you would use the 'pg' library to actually connect
-  const parsed = parseConnectionString(connectionString);
-  if (!parsed) {
-    return { success: false, error: 'Invalid connection string format' };
-  }
-  
-  // Simulate connection delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  // Simulate success/failure (in production, actually test connection)
-  // For demo, check if host looks valid
-  if (!parsed.host || parsed.host === 'invalid') {
-    return { success: false, error: 'Could not resolve hostname' };
-  }
-  
-  if (!parsed.user) {
-    return { success: false, error: 'Authentication credentials required' };
-  }
-  
-  // Simulate successful connection with version
+  const result = await testConnection(connectionString);
   return {
-    success: true,
-    pgVersion: '15.4',
+    success: result.success,
+    error: result.error,
+    pgVersion: result.pgVersion,
   };
 }
 
@@ -328,19 +253,50 @@ export async function PATCH(request: Request) {
           return NextResponse.json({ error: 'No connection string configured. Authentication required for sync.' }, { status: 400 });
         }
 
-        // Test connection first using stored credentials
-        const connectionTest = await testDatabaseConnection(node.connectionString);
-        if (!connectionTest.success) {
+        // Get the cluster's primary node for source connection
+        const cluster = await prisma.cluster.findUnique({
+          where: { id: node.clusterId },
+          include: { nodes: true },
+        });
+
+        if (!cluster) {
+          return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
+        }
+
+        const primaryNode = cluster.nodes.find(n => n.role === 'PRIMARY');
+        if (!primaryNode || !primaryNode.connectionString) {
+          return NextResponse.json({ error: 'No primary node with connection string found in cluster' }, { status: 400 });
+        }
+
+        // Test connection to this node (target) using stored credentials
+        const targetConnectionTest = await testDatabaseConnection(node.connectionString);
+        if (!targetConnectionTest.success) {
           await prisma.node.update({
             where: { id: nodeId },
             data: {
               syncStatus: 'FAILED',
-              syncError: `Authentication failed: ${connectionTest.error}`,
+              syncError: `Target authentication failed: ${targetConnectionTest.error}`,
             },
           });
           return NextResponse.json({ 
-            error: 'Sync failed: Unable to authenticate with database', 
-            details: connectionTest.error 
+            error: 'Sync failed: Unable to authenticate with target database', 
+            details: targetConnectionTest.error 
+          }, { status: 400 });
+        }
+
+        // Test connection to primary (source)
+        const sourceConnectionTest = await testDatabaseConnection(primaryNode.connectionString);
+        if (!sourceConnectionTest.success) {
+          await prisma.node.update({
+            where: { id: nodeId },
+            data: {
+              syncStatus: 'FAILED',
+              syncError: `Source (primary) authentication failed: ${sourceConnectionTest.error}`,
+            },
+          });
+          return NextResponse.json({ 
+            error: 'Sync failed: Unable to authenticate with primary database', 
+            details: sourceConnectionTest.error 
           }, { status: 400 });
         }
 
@@ -350,39 +306,83 @@ export async function PATCH(request: Request) {
           data: { syncStatus: 'SYNCING', syncError: null },
         });
 
-        // In production, this would execute actual sync operations using node.connectionString:
-        // 1. Connect to source (primary) and target (this node) databases
-        // 2. Compare schemas and apply DDL changes
-        // 3. Sync data using pg_dump/pg_restore or logical replication
-        // Simulate sync process with authentication context
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+          // Compare schemas between primary and this node
+          const schemaComparison = await compareSchemas(
+            primaryNode.connectionString,
+            node.connectionString
+          );
 
-        // Update to synced
-        const updatedNode = await prisma.node.update({
-          where: { id: nodeId },
-          data: {
-            syncStatus: 'SYNCED',
-            lastSyncAt: new Date(),
-            syncError: null,
-            connectionVerified: true,
-            lastConnectionTest: new Date(),
-          },
-        });
+          // Perform data sync from primary to this node
+          const syncResult = await syncData(
+            primaryNode.connectionString,
+            node.connectionString,
+            { fullSync: true }
+          );
 
-        await createAuditLog({
-          userId: session.user.id,
-          entityType: 'Node',
-          entityId: nodeId,
-          action: 'SYNC',
-          afterState: { syncStatus: 'SYNCED', authenticatedWith: 'connectionString' },
-        });
+          if (!syncResult.success) {
+            await prisma.node.update({
+              where: { id: nodeId },
+              data: {
+                syncStatus: 'FAILED',
+                syncError: syncResult.error || 'Data sync failed',
+              },
+            });
+            return NextResponse.json({ 
+              error: 'Data sync failed', 
+              details: syncResult.error 
+            }, { status: 400 });
+          }
 
-        return NextResponse.json({
-          success: true,
-          syncStatus: updatedNode.syncStatus,
-          lastSyncAt: updatedNode.lastSyncAt,
-          authenticated: true,
-        });
+          // Update to synced
+          const updatedNode = await prisma.node.update({
+            where: { id: nodeId },
+            data: {
+              syncStatus: 'SYNCED',
+              lastSyncAt: new Date(),
+              syncError: null,
+              connectionVerified: true,
+              lastConnectionTest: new Date(),
+              pgVersion: targetConnectionTest.pgVersion,
+            },
+          });
+
+          await createAuditLog({
+            userId: session.user.id,
+            entityType: 'Node',
+            entityId: nodeId,
+            action: 'SYNC',
+            afterState: { 
+              syncStatus: 'SYNCED', 
+              tablesSync: syncResult.tablesSync,
+              rowsCopied: syncResult.rowsCopied,
+              schemaDifferences: schemaComparison.differences.length,
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            syncStatus: updatedNode.syncStatus,
+            lastSyncAt: updatedNode.lastSyncAt,
+            tablesSync: syncResult.tablesSync,
+            rowsCopied: syncResult.rowsCopied,
+            schemaDifferences: schemaComparison.differences,
+            authenticated: true,
+          });
+        } catch (syncError) {
+          const err = syncError as Error;
+          await prisma.node.update({
+            where: { id: nodeId },
+            data: {
+              syncStatus: 'FAILED',
+              syncError: err.message,
+            },
+          });
+          return NextResponse.json({ 
+            error: 'Sync operation failed', 
+            details: err.message 
+          }, { status: 500 });
+        }
       }
 
       case 'setup-replication': {
@@ -390,21 +390,54 @@ export async function PATCH(request: Request) {
           return NextResponse.json({ error: 'Connection string required for replication setup. Authentication needed.' }, { status: 400 });
         }
 
-        // Test connection first using stored credentials
-        const connectionTest = await testDatabaseConnection(node.connectionString);
-        if (!connectionTest.success) {
+        // Get the cluster's primary node
+        const cluster = await prisma.cluster.findUnique({
+          where: { id: node.clusterId },
+          include: { nodes: true },
+        });
+
+        if (!cluster) {
+          return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
+        }
+
+        const primaryNode = cluster.nodes.find(n => n.role === 'PRIMARY');
+        if (!primaryNode || !primaryNode.connectionString) {
+          return NextResponse.json({ error: 'No primary node with connection string found in cluster' }, { status: 400 });
+        }
+
+        // Test connection to primary
+        const primaryConnectionTest = await testDatabaseConnection(primaryNode.connectionString);
+        if (!primaryConnectionTest.success) {
           return NextResponse.json({ 
-            error: 'Replication setup failed: Unable to authenticate with database', 
-            details: connectionTest.error 
+            error: 'Replication setup failed: Unable to authenticate with primary database', 
+            details: primaryConnectionTest.error 
           }, { status: 400 });
         }
 
-        // Setup replication slot
-        // In production, this would:
-        // 1. Connect to the primary using its connection string
-        // 2. Execute: SELECT pg_create_physical_replication_slot('slot_name')
-        // 3. Configure recovery.conf on this replica with primary_conninfo from node.connectionString
+        // Test connection to this replica
+        const replicaConnectionTest = await testDatabaseConnection(node.connectionString);
+        if (!replicaConnectionTest.success) {
+          return NextResponse.json({ 
+            error: 'Replication setup failed: Unable to authenticate with replica database', 
+            details: replicaConnectionTest.error 
+          }, { status: 400 });
+        }
+
+        // Generate slot name
         const slotName = `replica_${node.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+
+        // Create replication slot on primary
+        const slotResult = await createReplicationSlot(primaryNode.connectionString, slotName, 'physical');
+        
+        if (!slotResult.success && !slotResult.error?.includes('already exists')) {
+          return NextResponse.json({ 
+            error: 'Failed to create replication slot on primary', 
+            details: slotResult.error 
+          }, { status: 400 });
+        }
+
+        // Get replication status from primary
+        const replicationStatus = await getReplicationStatus(primaryNode.connectionString);
         
         const updatedNode = await prisma.node.update({
           where: { id: nodeId },
@@ -413,6 +446,7 @@ export async function PATCH(request: Request) {
             replicationSlot: slotName,
             connectionVerified: true,
             lastConnectionTest: new Date(),
+            pgVersion: replicaConnectionTest.pgVersion,
           },
         });
 
@@ -421,12 +455,18 @@ export async function PATCH(request: Request) {
           entityType: 'Node',
           entityId: nodeId,
           action: 'SETUP_REPLICATION',
-          afterState: { replicationSlot: slotName, authenticatedWith: 'connectionString' },
+          afterState: { 
+            replicationSlot: slotName,
+            slotCreated: slotResult.success,
+            primaryLsn: replicationStatus.currentLsn,
+          },
         });
 
         return NextResponse.json({
           success: true,
           replicationSlot: slotName,
+          slotCreated: slotResult.success || slotResult.error?.includes('already exists'),
+          primaryLsn: replicationStatus.currentLsn,
           authenticated: true,
         });
       }

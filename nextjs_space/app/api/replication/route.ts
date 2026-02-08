@@ -5,114 +5,131 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { createAuditLog } from '@/lib/audit';
-
-// Generate simulated LSN
-function generateLSN(): string {
-  const segment = Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase();
-  const offset = Math.floor(Math.random() * 16777216).toString(16).padStart(8, '0').toUpperCase();
-  return `0/${segment}${offset}`;
-}
+import {
+  getReplicationStatus,
+  getReplicationSlots,
+  getWalActivity,
+  createReplicationSlot,
+  dropReplicationSlot,
+  testConnection,
+} from '@/lib/postgres';
 
 // Parse LSN to bytes for lag calculation
 function lsnToBytes(lsn: string): bigint {
+  if (!lsn || lsn === '0/0') return BigInt(0);
   const parts = lsn.split('/');
   const segment = parseInt(parts[0], 16);
   const offset = parseInt(parts[1], 16);
   return BigInt(segment) * BigInt(0x100000000) + BigInt(offset);
 }
 
-function generateReplicationSlots(clusterId: string, nodes: any[]) {
-  return nodes
-    .filter(n => n.role === 'REPLICA')
-    .map((node, idx) => {
-      const active = Math.random() > 0.1;
-      const restartLsn = generateLSN();
-      const confirmedLsn = active ? generateLSN() : null;
-      
-      return {
-        id: `slot-${idx}-${clusterId}`,
-        clusterId,
-        nodeId: node.id,
-        slotName: `replica_slot_${idx + 1}`,
-        slotType: 'physical',
-        database: null,
-        active,
-        restartLsn,
-        confirmedFlushLsn: confirmedLsn,
-        walStatus: active ? 'streaming' : 'reserved',
-        safeWalSize: BigInt(Math.floor(Math.random() * 1073741824)),
-        retainedWal: BigInt(Math.floor(Math.random() * 104857600)),
-        catalogXmin: null,
-      };
-    });
-}
+// Get replication data from actual database connections
+async function fetchReplicationData(primaryNode: { connectionString: string | null }, replicaNodes: Array<{ id: string; name: string; connectionString: string | null; replicationSlot?: string | null }>) {
+  if (!primaryNode.connectionString) {
+    return { slots: [], lag: [], walActivity: null };
+  }
 
-function generateReplicationLag(clusterId: string, nodes: any[]) {
-  const primaryLsn = generateLSN();
-  const primaryBytes = lsnToBytes(primaryLsn);
-  
-  return nodes
-    .filter(n => n.role === 'REPLICA')
-    .map((node, idx) => {
-      const lagMs = Math.random() * 5000;
-      const replayBytes = primaryBytes - BigInt(Math.floor(lagMs * 1000));
-      const replayLsn = `0/${replayBytes.toString(16).toUpperCase().padStart(8, '0')}`;
-      
+  try {
+    // Test primary connection first
+    const primaryTest = await testConnection(primaryNode.connectionString);
+    if (!primaryTest.success) {
+      console.error('Primary connection failed:', primaryTest.error);
+      return { slots: [], lag: [], walActivity: null, error: primaryTest.error };
+    }
+
+    // Get replication slots from primary
+    const slots = await getReplicationSlots(primaryNode.connectionString);
+    
+    // Get replication status from primary (includes replica lag info)
+    const replicationStatus = await getReplicationStatus(primaryNode.connectionString);
+    
+    // Get WAL activity from primary
+    const walActivity = await getWalActivity(primaryNode.connectionString);
+
+    // Map replication status to replica nodes
+    const lagData = replicaNodes.map(replica => {
+      // Find matching replica in replication status
+      const replicaStatus = replicationStatus.replicas?.find(r => 
+        r.applicationName === replica.replicationSlot ||
+        r.applicationName === replica.name
+      );
+
+      if (replicaStatus) {
+        const primaryBytes = lsnToBytes(replicationStatus.currentLsn || '0/0');
+        const replayBytes = lsnToBytes(replicaStatus.replayLsn);
+        const lagBytes = primaryBytes - replayBytes;
+        
+        return {
+          nodeId: replica.id,
+          nodeName: replica.name,
+          replayLag: Number(lagBytes) / 1000000, // Convert to seconds approximation
+          writeLag: Number(lagBytes) / 1000000 * 0.8,
+          flushLag: Number(lagBytes) / 1000000 * 0.9,
+          sentLsn: replicaStatus.sentLsn,
+          writeLsn: replicaStatus.writeLsn,
+          flushLsn: replicaStatus.flushLsn,
+          replayLsn: replicaStatus.replayLsn,
+          walBytes: lagBytes.toString(),
+          syncState: replicaStatus.syncState,
+          state: replicaStatus.state,
+          timestamp: new Date(),
+        };
+      }
+
+      // If replica not found in replication status, try to get info directly
       return {
-        id: `lag-${idx}-${clusterId}`,
-        clusterId,
-        nodeId: node.id,
-        nodeName: node.name,
-        replayLag: lagMs / 1000,
-        writeLag: lagMs / 1000 * 0.8,
-        flushLag: lagMs / 1000 * 0.9,
-        sentLsn: primaryLsn,
-        writeLsn: replayLsn,
-        flushLsn: replayLsn,
-        replayLsn,
-        walBytes: primaryBytes - lsnToBytes(replayLsn),
-        syncState: node.priority === 1 ? 'sync' : 'async',
-        syncPriority: node.priority,
+        nodeId: replica.id,
+        nodeName: replica.name,
+        replayLag: 0,
+        writeLag: 0,
+        flushLag: 0,
+        sentLsn: null,
+        writeLsn: null,
+        flushLsn: null,
+        replayLsn: null,
+        walBytes: '0',
+        syncState: 'disconnected',
+        state: 'unknown',
         timestamp: new Date(),
       };
     });
-}
 
-function generateWalActivity(clusterId: string, nodeId: string) {
-  return {
-    id: `wal-${clusterId}-${nodeId}`,
-    clusterId,
-    nodeId,
-    currentLsn: generateLSN(),
-    walWrite: BigInt(Math.floor(Math.random() * 10737418240)),
-    walSend: BigInt(Math.floor(Math.random() * 10737418240)),
-    archiveCount: Math.floor(Math.random() * 1000) + 100,
-    archiveFailed: Math.floor(Math.random() * 5),
-    lastArchived: `000000010000000000000${Math.floor(Math.random() * 100).toString().padStart(3, '0')}`,
-    lastArchivedAt: new Date(Date.now() - Math.random() * 3600000),
-    lastFailed: Math.random() > 0.7 ? `000000010000000000000${Math.floor(Math.random() * 10).toString().padStart(3, '0')}` : null,
-    lastFailedAt: Math.random() > 0.7 ? new Date(Date.now() - Math.random() * 86400000) : null,
-    timestamp: new Date(),
-  };
-}
-
-function generateLagHistory(clusterId: string, nodeId: string, hours: number = 24) {
-  const history = [];
-  const now = Date.now();
-  const interval = (hours * 60 * 60 * 1000) / 100;
-  
-  for (let i = 0; i < 100; i++) {
-    const baselag = Math.random() * 2;
-    const spike = Math.random() > 0.95 ? Math.random() * 10 : 0;
-    history.push({
-      timestamp: new Date(now - (100 - i) * interval),
-      replayLag: baselag + spike,
-      writeLag: (baselag + spike) * 0.8,
-      flushLag: (baselag + spike) * 0.9,
-    });
+    return {
+      slots: slots.map(s => ({
+        slotName: s.slotName,
+        slotType: s.slotType,
+        database: s.database,
+        active: s.active,
+        restartLsn: s.restartLsn,
+        confirmedFlushLsn: s.confirmedFlushLsn,
+        walStatus: s.walStatus,
+        retainedWalBytes: s.retainedWalBytes.toString(),
+      })),
+      lag: lagData,
+      walActivity: {
+        currentLsn: walActivity.currentLsn,
+        walWrite: walActivity.walWriteBytes.toString(),
+        walSend: walActivity.walSendBytes.toString(),
+        archiveCount: walActivity.archiveCount,
+        archiveFailed: walActivity.archiveFailed,
+        lastArchived: walActivity.lastArchived,
+        lastArchivedAt: walActivity.lastArchivedAt,
+        lastFailed: walActivity.lastFailed,
+        lastFailedAt: walActivity.lastFailedAt,
+        timestamp: new Date(),
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching replication data:', error);
+    return { slots: [], lag: [], walActivity: null, error: (error as Error).message };
   }
-  
-  return history;
+}
+
+// Generate historical lag data (stored in DB or approximated)
+function generateLagHistory(clusterId: string, nodeId: string, hours: number = 24) {
+  // In production, this would query from stored metrics
+  // For now, we return empty array since we're using real-time data
+  return [];
 }
 
 export async function GET(request: Request) {
@@ -141,11 +158,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
     }
 
+    const primaryNode = cluster.nodes.find(n => n.role === 'PRIMARY');
+    const replicaNodes = cluster.nodes.filter(n => n.role === 'REPLICA');
+
     if (type === 'overview') {
-      const slots = generateReplicationSlots(clusterId, cluster.nodes);
-      const lagData = generateReplicationLag(clusterId, cluster.nodes);
-      const primary = cluster.nodes.find(n => n.role === 'PRIMARY');
-      const walActivity = primary ? generateWalActivity(clusterId, primary.id) : null;
+      // Fetch real replication data from primary database
+      const replicationData = await fetchReplicationData(
+        { connectionString: primaryNode?.connectionString || null },
+        replicaNodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          connectionString: n.connectionString,
+          replicationSlot: n.replicationSlot,
+        }))
+      );
 
       return NextResponse.json({
         cluster: {
@@ -153,78 +179,96 @@ export async function GET(request: Request) {
           name: cluster.name,
           replicationMode: cluster.replicationMode,
         },
-        nodes: cluster.nodes,
-        slots: slots.map(s => ({
-          ...s,
-          safeWalSize: s.safeWalSize.toString(),
-          retainedWal: s.retainedWal.toString(),
+        nodes: cluster.nodes.map(n => ({
+          ...n,
+          connectionString: n.connectionString ? n.connectionString.replace(/:([^@]+)@/, ':***@') : null,
+          dbPasswordHash: n.dbPasswordHash ? '***' : null,
         })),
-        lag: lagData.map(l => ({
-          ...l,
-          walBytes: l.walBytes.toString(),
-        })),
-        walActivity: walActivity ? {
-          ...walActivity,
-          walWrite: walActivity.walWrite.toString(),
-          walSend: walActivity.walSend.toString(),
-        } : null,
+        slots: replicationData.slots,
+        lag: replicationData.lag,
+        walActivity: replicationData.walActivity,
+        error: replicationData.error,
       });
     }
 
     if (type === 'slots') {
-      let slots = await prisma.replicationSlot.findMany({
-        where: { clusterId },
-      });
-
-      if (slots.length === 0) {
-        slots = generateReplicationSlots(clusterId, cluster.nodes) as any;
+      if (!primaryNode?.connectionString) {
+        return NextResponse.json({ error: 'No primary node with connection string found' }, { status: 400 });
       }
 
-      return NextResponse.json(slots.map(s => ({
-        ...s,
-        safeWalSize: s.safeWalSize?.toString(),
-        retainedWal: s.retainedWal?.toString(),
-      })));
+      try {
+        const slots = await getReplicationSlots(primaryNode.connectionString);
+        return NextResponse.json(slots.map(s => ({
+          ...s,
+          retainedWalBytes: s.retainedWalBytes.toString(),
+        })));
+      } catch (error) {
+        console.error('Error fetching slots:', error);
+        return NextResponse.json({ error: 'Failed to fetch replication slots', details: (error as Error).message }, { status: 500 });
+      }
     }
 
     if (type === 'lag') {
-      let lagData = await prisma.replicationLag.findMany({
-        where: { clusterId },
-        orderBy: { timestamp: 'desc' },
-        take: cluster.nodes.length,
-      });
+      // Fetch real lag data from primary
+      const replicationData = await fetchReplicationData(
+        { connectionString: primaryNode?.connectionString || null },
+        replicaNodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          connectionString: n.connectionString,
+          replicationSlot: n.replicationSlot,
+        }))
+      );
 
-      if (lagData.length === 0) {
-        lagData = generateReplicationLag(clusterId, cluster.nodes) as any;
-      }
-
-      return NextResponse.json(lagData.map(l => ({
-        ...l,
-        walBytes: l.walBytes?.toString(),
-      })));
+      return NextResponse.json(replicationData.lag);
     }
 
     if (type === 'lag_history' && nodeId) {
+      // Return stored lag history from database
       const hours = parseInt(searchParams.get('hours') || '24');
-      const history = generateLagHistory(clusterId, nodeId, hours);
-      return NextResponse.json(history);
+      const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+      
+      const history = await prisma.replicationLag.findMany({
+        where: {
+          clusterId,
+          nodeId,
+          timestamp: { gte: since },
+        },
+        orderBy: { timestamp: 'asc' },
+      });
+
+      return NextResponse.json(history.map(h => ({
+        timestamp: h.timestamp,
+        replayLag: h.replayLag,
+        writeLag: h.writeLag,
+        flushLag: h.flushLag,
+      })));
     }
 
     if (type === 'wal' && nodeId) {
-      let walData = await prisma.walActivity.findFirst({
-        where: { clusterId, nodeId },
-        orderBy: { timestamp: 'desc' },
-      });
-
-      if (!walData) {
-        walData = generateWalActivity(clusterId, nodeId) as any;
+      const node = cluster.nodes.find(n => n.id === nodeId);
+      if (!node?.connectionString) {
+        return NextResponse.json({ error: 'Node not found or no connection string' }, { status: 400 });
       }
 
-      return NextResponse.json({
-        ...walData,
-        walWrite: walData?.walWrite?.toString(),
-        walSend: walData?.walSend?.toString(),
-      });
+      try {
+        const walActivity = await getWalActivity(node.connectionString);
+        return NextResponse.json({
+          currentLsn: walActivity.currentLsn,
+          walWrite: walActivity.walWriteBytes.toString(),
+          walSend: walActivity.walSendBytes.toString(),
+          archiveCount: walActivity.archiveCount,
+          archiveFailed: walActivity.archiveFailed,
+          lastArchived: walActivity.lastArchived,
+          lastArchivedAt: walActivity.lastArchivedAt,
+          lastFailed: walActivity.lastFailed,
+          lastFailedAt: walActivity.lastFailedAt,
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        console.error('Error fetching WAL activity:', error);
+        return NextResponse.json({ error: 'Failed to fetch WAL activity', details: (error as Error).message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
@@ -248,20 +292,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'clusterId is required' }, { status: 400 });
     }
 
+    // Get cluster and primary node
+    const cluster = await prisma.cluster.findUnique({
+      where: { id: clusterId },
+      include: { nodes: true },
+    });
+
+    if (!cluster) {
+      return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
+    }
+
+    const primaryNode = cluster.nodes.find(n => n.role === 'PRIMARY');
+    if (!primaryNode?.connectionString) {
+      return NextResponse.json({ error: 'No primary node with connection string found' }, { status: 400 });
+    }
+
     if (action === 'create_slot') {
-      if (!nodeId || !slotName) {
-        return NextResponse.json({ error: 'nodeId and slotName are required' }, { status: 400 });
+      if (!slotName) {
+        return NextResponse.json({ error: 'slotName is required' }, { status: 400 });
       }
 
+      // Create replication slot on the actual primary database
+      const slotType = body.slotType || 'physical';
+      const result = await createReplicationSlot(
+        primaryNode.connectionString,
+        slotName,
+        slotType as 'physical' | 'logical',
+        body.outputPlugin
+      );
+
+      if (!result.success) {
+        return NextResponse.json({ 
+          error: 'Failed to create replication slot', 
+          details: result.error 
+        }, { status: 400 });
+      }
+
+      // Also store in our database for tracking
       const slot = await prisma.replicationSlot.create({
         data: {
           clusterId,
-          nodeId,
+          nodeId: nodeId || primaryNode.id,
           slotName,
-          slotType: body.slotType || 'physical',
+          slotType,
           database: body.database,
           active: false,
-          restartLsn: generateLSN(),
+          restartLsn: result.lsn || '0/0',
           walStatus: 'reserved',
         },
       });
@@ -271,10 +347,10 @@ export async function POST(request: Request) {
         entityType: 'ReplicationSlot',
         entityId: slot.id,
         action: 'CREATE',
-        afterState: slot,
+        afterState: { slotName, slotType, lsn: result.lsn },
       });
 
-      return NextResponse.json(slot);
+      return NextResponse.json({ ...slot, createdOnPrimary: true, lsn: result.lsn });
     }
 
     if (action === 'drop_slot') {
@@ -282,37 +358,61 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'slotName is required' }, { status: 400 });
       }
 
-      const slot = await prisma.replicationSlot.delete({
-        where: {
-          clusterId_slotName: { clusterId, slotName },
-        },
-      });
+      // Drop replication slot on the actual primary database
+      const result = await dropReplicationSlot(primaryNode.connectionString, slotName);
 
-      await createAuditLog({
-        userId: session.user.id,
-        entityType: 'ReplicationSlot',
-        entityId: slot.id,
-        action: 'DELETE',
-        beforeState: slot,
-      });
+      if (!result.success) {
+        return NextResponse.json({ 
+          error: 'Failed to drop replication slot', 
+          details: result.error 
+        }, { status: 400 });
+      }
 
-      return NextResponse.json({ success: true });
+      // Also remove from our database
+      try {
+        const slot = await prisma.replicationSlot.delete({
+          where: {
+            clusterId_slotName: { clusterId, slotName },
+          },
+        });
+
+        await createAuditLog({
+          userId: session.user.id,
+          entityType: 'ReplicationSlot',
+          entityId: slot.id,
+          action: 'DELETE',
+          beforeState: { slotName },
+        });
+      } catch {
+        // Slot might not exist in our DB but was dropped from PostgreSQL
+      }
+
+      return NextResponse.json({ success: true, droppedOnPrimary: true });
     }
 
     if (action === 'record_metrics') {
-      // Record current replication metrics
-      const cluster = await prisma.cluster.findUnique({
-        where: { id: clusterId },
-        include: { nodes: true },
-      });
+      // Record current replication metrics from actual database
+      const replicaNodes = cluster.nodes.filter(n => n.role === 'REPLICA');
+      
+      const replicationData = await fetchReplicationData(
+        { connectionString: primaryNode.connectionString },
+        replicaNodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          connectionString: n.connectionString,
+          replicationSlot: n.replicationSlot,
+        }))
+      );
 
-      if (!cluster) {
-        return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
+      if (replicationData.error) {
+        return NextResponse.json({ 
+          error: 'Failed to fetch replication metrics', 
+          details: replicationData.error 
+        }, { status: 400 });
       }
 
-      const lagData = generateReplicationLag(clusterId, cluster.nodes);
-      
-      for (const lag of lagData) {
+      // Store lag data
+      for (const lag of replicationData.lag) {
         await prisma.replicationLag.create({
           data: {
             clusterId,
@@ -324,23 +424,22 @@ export async function POST(request: Request) {
             writeLsn: lag.writeLsn,
             flushLsn: lag.flushLsn,
             replayLsn: lag.replayLsn,
-            walBytes: lag.walBytes,
+            walBytes: BigInt(lag.walBytes),
             syncState: lag.syncState,
-            syncPriority: lag.syncPriority,
           },
         });
       }
 
-      const primary = cluster.nodes.find(n => n.role === 'PRIMARY');
-      if (primary) {
-        const wal = generateWalActivity(clusterId, primary.id);
+      // Store WAL activity
+      if (replicationData.walActivity) {
+        const wal = replicationData.walActivity;
         await prisma.walActivity.create({
           data: {
             clusterId,
-            nodeId: primary.id,
+            nodeId: primaryNode.id,
             currentLsn: wal.currentLsn,
-            walWrite: wal.walWrite,
-            walSend: wal.walSend,
+            walWrite: BigInt(wal.walWrite),
+            walSend: BigInt(wal.walSend),
             archiveCount: wal.archiveCount,
             archiveFailed: wal.archiveFailed,
             lastArchived: wal.lastArchived,
@@ -351,7 +450,11 @@ export async function POST(request: Request) {
         });
       }
 
-      return NextResponse.json({ success: true, recorded: lagData.length });
+      return NextResponse.json({ 
+        success: true, 
+        recorded: replicationData.lag.length,
+        slotsFound: replicationData.slots.length,
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
