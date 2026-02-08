@@ -417,14 +417,9 @@ export async function DELETE(req: NextRequest) {
       const deletedEmails: string[] = [];
 
       for (const user of targetUsers) {
-        // Prevent self-deletion
+        // Prevent self-deletion only
         if (user.id === currentUser.id) {
           errors.push(`Cannot delete yourself (${user.email})`);
-          continue;
-        }
-        // Prevent deleting owner unless done by owner
-        if (user.role === 'OWNER' && currentUser.role !== 'OWNER') {
-          errors.push(`Cannot delete owner (${user.email})`);
           continue;
         }
         validIds.push(user.id);
@@ -471,14 +466,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Prevent self-deletion
+    // Prevent self-deletion only
     if (id === currentUser.id) {
       return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
-    }
-
-    // Prevent deleting owner unless done by owner
-    if (targetUser.role === 'OWNER' && currentUser.role !== 'OWNER') {
-      return NextResponse.json({ error: 'Cannot delete owner' }, { status: 403 });
     }
 
     await prisma.user.delete({ where: { id } });
