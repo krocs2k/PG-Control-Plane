@@ -1,0 +1,147 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1897ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.6s (791 modules)
+ GET / 200 in 3067ms
+ ✓ Compiled in 429ms (279 modules)
+ GET / 200 in 54ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2.2s (1642 modules)
+ GET /dashboard?_rsc=iqngu 200 in 34ms
+ GET /api/auth/session 200 in 2640ms
+ GET /api/auth/session 200 in 42ms
+ ✓ Compiled /api/projects in 207ms (972 modules)
+ ✓ Compiled (976 modules)
+ GET /api/organizations 200 in 590ms
+ GET /api/projects 200 in 600ms
+ GET /api/clusters 200 in 603ms
+ GET /api/organizations 200 in 33ms
+ GET /api/clusters 200 in 44ms
+ GET /api/projects 200 in 42ms
+ GET / 200 in 73ms
+ GET / 200 in 37ms
+ GET / 200 in 46ms
+ GET / 200 in 35ms
+ GET / 200 in 39ms
+ GET / 200 in 36ms
+ GET / 200 in 36ms
+ GET / 200 in 35ms
+ GET / 200 in 37ms
+ GET / 200 in 34ms
+ GET / 200 in 41ms
+ GET / 200 in 37ms
+ GET / 200 in 35ms
+ GET / 200 in 39ms
+ GET / 200 in 34ms
+ GET / 200 in 35ms
+ GET / 200 in 34ms
+ GET / 200 in 35ms
+ GET / 200 in 32ms
+ GET / 200 in 36ms
+ GET / 200 in 34ms
+ GET / 200 in 37ms
+ GET / 200 in 32ms
+ GET / 200 in 34ms
+ GET /api/auth/session 200 in 57ms
+ GET / 200 in 63ms
+ GET / 200 in 35ms
+ ○ Compiling /clusters/[id] ...
+ ✓ Compiled /clusters/[id] in 745ms (1693 modules)
+ ✓ Compiled /api/clusters/[id] in 169ms (995 modules)
+ GET /api/clusters/main-cluster 200 in 564ms
+ GET /api/clusters/main-cluster 200 in 41ms
+ ○ Compiling /clusters/[id]/routing ...
+ ✓ Compiled /clusters/[id]/routing in 662ms (1749 modules)
+ ✓ Compiled /api/routing in 175ms (1012 modules)
+ GET /api/routing?clusterId=main-cluster 200 in 233ms
+ GET /api/routing?clusterId=main-cluster 200 in 27ms
+ GET / 200 in 68ms
+ POST /api/routing 200 in 31ms
+ POST /api/routing 200 in 27ms
+ POST /api/routing 200 in 29ms
+ GET / 200 in 33ms
+ POST /api/routing 200 in 38ms
+ GET / 200 in 37ms
+ POST /api/routing 200 in 32ms
+ GET / 200 in 35ms
+ POST /api/routing 200 in 29ms
+ POST /api/routing 200 in 29ms
+ GET / 200 in 35ms
+ POST /api/routing 200 in 61ms
+ POST /api/routing 200 in 30ms
+ GET / 200 in 37ms
+ POST /api/routing 200 in 29ms
+ GET /api/clusters/main-cluster 200 in 43ms
+ GET /api/clusters/main-cluster 200 in 25ms
+ GET / 200 in 34ms
+ GET /api/routing?clusterId=main-cluster 200 in 30ms
+ GET /api/routing?clusterId=main-cluster 200 in 26ms
+ GET /api/clusters/main-cluster 200 in 38ms
+ GET /api/clusters/main-cluster 200 in 27ms
+ ○ Compiling /clusters/[id]/failover ...
+ ✓ Compiled /clusters/[id]/failover in 770ms (1769 modules)
+ GET /api/clusters/main-cluster 200 in 44ms
+ GET /api/clusters/main-cluster 200 in 29ms
+ ✓ Compiled /api/failover in 214ms (1023 modules)
+ GET /api/failover?clusterId=main-cluster 200 in 275ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET /api/failover?clusterId=main-cluster 200 in 27ms
+ GET /api/failover?clusterId=main-cluster 200 in 30ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET / 200 in 66ms
+ GET /api/failover?clusterId=main-cluster 200 in 33ms
+ GET /api/failover?clusterId=main-cluster 200 in 29ms
+ POST /api/failover 200 in 36ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET /api/failover?clusterId=main-cluster 200 in 27ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET /api/failover?clusterId=main-cluster 200 in 27ms
+ PATCH /api/failover 200 in 30ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET /api/failover?clusterId=main-cluster 200 in 34ms
+ GET /api/failover?clusterId=main-cluster 200 in 31ms
+ GET /api/failover?clusterId=main-cluster 200 in 35ms
+ GET /api/failover?clusterId=main-cluster 200 in 25ms
+ GET / 200 in 35ms
+ GET /api/failover?clusterId=main-cluster 200 in 27ms
+ GET /api/failover?clusterId=main-cluster 200 in 26ms
+ GET /api/failover?clusterId=main-cluster 200 in 26ms
+ GET /api/failover?clusterId=main-cluster 200 in 28ms
+ GET /api/failover?clusterId=main-cluster 200 in 29ms
+ GET /api/failover?clusterId=main-cluster 200 in 27ms
+ GET /api/clusters/main-cluster 200 in 47ms
+ GET /api/clusters/main-cluster 200 in 28ms
+ GET / 200 in 37ms
+ GET / 200 in 38ms
+ GET / 200 in 41ms
+ ✓ Compiled /api/auth/[...nextauth] in 485ms (1000 modules)
+ ✓ Compiled (1002 modules)
+ GET /api/auth/session 200 in 784ms
+ GET / 200 in 583ms
+ POST /api/auth/_log 200 in 29ms
+ GET /api/auth/session 200 in 50ms
+ GET /dashboard?_rsc=iqngu 200 in 42ms
+ GET /api/auth/session 200 in 38ms
+ ✓ Compiled /api/projects in 181ms (1004 modules)
+ ✓ Compiled (1008 modules)
+ GET /api/projects 200 in 458ms
+ GET /api/clusters 200 in 461ms
+ GET /api/organizations 200 in 476ms
+ GET /api/projects 200 in 36ms
+ GET /api/organizations 200 in 44ms
+ GET /api/clusters 200 in 51ms
+ ✓ Compiled in 497ms (760 modules)
+ ✓ Compiled in 635ms (748 modules)
+ ✓ Compiled in 460ms (760 modules)
+ ✓ Compiled in 423ms (760 modules)
+ ✓ Compiled in 418ms (760 modules)
+ ✓ Compiled in 508ms (760 modules)
+ ✓ Compiled in 311ms (763 modules)
+[?25h

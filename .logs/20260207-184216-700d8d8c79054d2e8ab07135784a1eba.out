@@ -1,0 +1,15 @@
+[master 3d81e62] Added full AI subsystems and ChatOps
+ 16 files changed, 3406 insertions(+), 2 deletions(-)
+ create mode 100644 nextjs_space/app/(dashboard)/ai/chat/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/ai/insights/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/ai/recommendations/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/ai/reports/page.tsx
+ create mode 100644 nextjs_space/app/api/ai/anomalies/route.ts
+ create mode 100644 nextjs_space/app/api/ai/chat/route.ts
+ create mode 100644 nextjs_space/app/api/ai/forecasts/route.ts
+ create mode 100644 nextjs_space/app/api/ai/rca/route.ts
+ create mode 100644 nextjs_space/app/api/ai/recommendations/route.ts
+ create mode 100644 nextjs_space/app/api/ai/reports/route.ts
+ create mode 100644 nextjs_space/app/api/incidents/route.ts
+ create mode 100644 nextjs_space/app/api/metrics/route.ts
+###3d81e62990853726e51aaf0ed7c38bdd7f9af23d###

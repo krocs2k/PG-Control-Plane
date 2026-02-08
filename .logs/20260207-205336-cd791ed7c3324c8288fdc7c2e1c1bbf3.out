@@ -1,0 +1,8 @@
+[master 725bc20] Phase 4: Operations Intelligence features
+ 8 files changed, 2698 insertions(+), 1 deletion(-)
+ create mode 100644 nextjs_space/app/(dashboard)/clusters/[id]/incidents/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/clusters/[id]/queries/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/clusters/[id]/replication/page.tsx
+ create mode 100644 nextjs_space/app/api/queries/route.ts
+ create mode 100644 nextjs_space/app/api/replication/route.ts
+###725bc2045d9651bd67a7c629fba90e526c112906###

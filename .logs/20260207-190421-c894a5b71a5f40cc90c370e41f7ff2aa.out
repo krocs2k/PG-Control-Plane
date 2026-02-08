@@ -1,0 +1,9 @@
+[master d7b194c] Added QA Copilot, Governance, Tech Scout
+ 8 files changed, 1951 insertions(+), 1 deletion(-)
+ create mode 100644 nextjs_space/app/(dashboard)/ai/governance/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/ai/qa/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/ai/tech-scout/page.tsx
+ create mode 100644 nextjs_space/app/api/ai/governance/route.ts
+ create mode 100644 nextjs_space/app/api/ai/qa/route.ts
+ create mode 100644 nextjs_space/app/api/ai/tech-scout/route.ts
+###d7b194ca150a13284c45b1bfebfa3af10d09c331###

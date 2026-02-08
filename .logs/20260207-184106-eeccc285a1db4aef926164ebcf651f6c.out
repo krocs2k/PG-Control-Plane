@@ -1,0 +1,71 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1511ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1555ms (784 modules)
+ GET / 200 in 2061ms
+ ✓ Compiled in 414ms (279 modules)
+ GET / 200 in 47ms
+ GET / 200 in 36ms
+ GET / 200 in 33ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2s (1636 modules)
+ GET /dashboard?_rsc=iqngu 200 in 34ms
+ GET /api/auth/session 200 in 2426ms
+ GET /api/auth/session 200 in 37ms
+ ✓ Compiled /api/clusters in 226ms (969 modules)
+ ✓ Compiled (973 modules)
+ GET /api/projects 200 in 663ms
+ GET /api/organizations 200 in 677ms
+ GET /api/clusters 200 in 677ms
+ GET /api/projects 200 in 34ms
+ GET /api/organizations 200 in 42ms
+ GET /api/clusters 200 in 39ms
+ GET / 200 in 70ms
+ GET / 200 in 32ms
+ ○ Compiling /ai/insights ...
+ ✓ Compiled /ai/insights in 659ms (1657 modules)
+ ✓ Compiled /api/clusters in 142ms (975 modules)
+ GET /api/clusters 200 in 231ms
+ GET /api/clusters 200 in 24ms
+ ✓ Compiled /api/ai/anomalies in 156ms (977 modules)
+ ✓ Compiled (979 modules)
+ GET /api/ai/forecasts?clusterId=main-cluster 200 in 375ms
+ GET /api/ai/anomalies?clusterId=main-cluster 200 in 374ms
+ ○ Compiling /ai/recommendations ...
+ ✓ Compiled /ai/recommendations in 533ms (1712 modules)
+ GET /api/clusters 200 in 35ms
+ GET /api/clusters 200 in 41ms
+ ✓ Compiled /api/ai/recommendations in 204ms (993 modules)
+ GET /api/ai/recommendations?clusterId=main-cluster 200 in 269ms
+ GET / 200 in 67ms
+ ✓ Compiled /ai/chat in 403ms (1730 modules)
+ GET /api/clusters 200 in 35ms
+ GET /api/clusters 200 in 28ms
+ GET / 200 in 51ms
+ ✓ Compiled /api/auth/[...nextauth] in 385ms (1012 modules)
+ ✓ Compiled (1014 modules)
+ GET /api/auth/session 200 in 711ms
+ GET /api/auth/session 200 in 43ms
+ GET /dashboard?_rsc=iqngu 200 in 47ms
+ ✓ Compiled /api/projects in 206ms (1016 modules)
+ ✓ Compiled (1018 modules)
+ GET /api/clusters 200 in 474ms
+ GET /api/projects 200 in 492ms
+ GET /api/organizations 200 in 492ms
+ GET /api/clusters 200 in 28ms
+ GET /api/organizations 200 in 35ms
+ GET /api/projects 200 in 33ms
+ GET /api/clusters 200 in 25ms
+ GET /api/clusters 200 in 33ms
+ GET / 200 in 41ms
+ ✓ Compiled in 697ms (1745 modules)
+ ✓ Compiled in 461ms (1729 modules)
+ ✓ Compiled in 458ms (1729 modules)
+ ✓ Compiled in 412ms (1729 modules)
+[?25h

@@ -1,0 +1,88 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1872ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.9s (791 modules)
+ GET / 200 in 3071ms
+ ✓ Compiled in 409ms (279 modules)
+ ✓ Compiled /api/auth/[...nextauth] in 200ms (509 modules)
+ GET /api/auth/providers 200 in 587ms
+ GET / 200 in 63ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 614ms (861 modules)
+ GET /api/auth/session 200 in 707ms
+ GET /api/auth/session 200 in 26ms
+ ✓ Compiled /register in 290ms (871 modules)
+ GET /register 200 in 374ms
+ GET /api/auth/session 200 in 44ms
+ GET /api/auth/session 200 in 25ms
+ GET /login 200 in 50ms
+ GET /api/auth/session 200 in 39ms
+ GET /api/auth/session 200 in 25ms
+ GET /api/auth/csrf 200 in 39ms
+ ✓ Compiled /api/signup in 354ms (585 modules)
+ POST /api/signup 200 in 607ms
+ GET / 200 in 65ms
+ GET /api/auth/signin 302 in 43ms
+ GET /login?callbackUrl=https://120f52ae02.preview.abacusai.app 200 in 47ms
+ GET /api/auth/csrf 200 in 24ms
+ POST /api/auth/callback/credentials 302 in 100ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1639ms (1685 modules)
+ GET /dashboard 200 in 1764ms
+ GET / 200 in 56ms
+ GET /dashboard 200 in 70ms
+ ✓ Compiled /api/clusters in 222ms (985 modules)
+ ✓ Compiled (989 modules)
+ GET /api/auth/session 200 in 538ms
+ GET /api/organizations 200 in 586ms
+ GET /api/projects 200 in 589ms
+ GET /api/clusters 200 in 586ms
+ GET /api/auth/session 200 in 55ms
+ GET /dashboard?_rsc=iqngu 200 in 73ms
+ GET /api/organizations 200 in 75ms
+ GET /api/projects 200 in 83ms
+ GET /api/clusters 200 in 82ms
+ GET /api/auth/session 200 in 48ms
+ GET /api/auth/session 200 in 39ms
+ GET /api/organizations 200 in 66ms
+ GET /api/clusters 200 in 76ms
+ GET /api/projects 200 in 82ms
+ GET /api/auth/session 200 in 89ms
+ GET /api/organizations 200 in 55ms
+ GET /api/clusters 200 in 62ms
+ GET /api/projects 200 in 63ms
+ ○ Compiling /clusters/[id] ...
+ ✓ Compiled /clusters/[id] in 1076ms (1769 modules)
+ GET /projects 200 in 1234ms
+ GET /clusters 200 in 1234ms
+ GET /clusters/new 200 in 1231ms
+ GET /clusters/main-cluster 200 in 1551ms
+ GET /api/clusters 200 in 59ms
+ GET /api/auth/session 200 in 75ms
+ GET /api/projects 200 in 76ms
+ GET /api/clusters 200 in 62ms
+ GET /api/auth/session 200 in 52ms
+ GET /api/projects 200 in 46ms
+ GET /api/auth/session 200 in 34ms
+ GET /api/projects 200 in 35ms
+ GET /api/auth/session 200 in 26ms
+ GET /api/projects 200 in 30ms
+ GET /api/auth/session 200 in 29ms
+ GET /api/auth/session 200 in 51ms
+ ✓ Compiled /api/clusters/[id] in 263ms (1033 modules)
+ GET /api/auth/session 200 in 547ms
+ GET /api/auth/session 200 in 24ms
+ GET /api/auth/session 200 in 26ms
+ GET /api/auth/session 200 in 25ms
+ GET /api/auth/session 200 in 23ms
+ GET /api/auth/session 200 in 22ms
+ GET /api/clusters/main-cluster 200 in 867ms
+ GET /api/clusters/main-cluster 200 in 43ms
+ GET /api/auth/session 200 in 55ms
+[?25h

@@ -1,0 +1,8 @@
+[master ab8b2fa] Added failover, routing, node lifecycle
+ 8 files changed, 2106 insertions(+), 41 deletions(-)
+ create mode 100644 nextjs_space/app/(dashboard)/clusters/[id]/failover/page.tsx
+ create mode 100644 nextjs_space/app/(dashboard)/clusters/[id]/routing/page.tsx
+ create mode 100644 nextjs_space/app/api/failover/route.ts
+ create mode 100644 nextjs_space/app/api/node-lifecycle/route.ts
+ create mode 100644 nextjs_space/app/api/routing/route.ts
+###ab8b2fae5443e73f391f82e7dd181e7d2a5cca86###

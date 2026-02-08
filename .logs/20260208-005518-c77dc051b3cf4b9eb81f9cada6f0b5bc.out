@@ -1,0 +1,171 @@
+➤ YN0000: · Yarn 4.12.0
+➤ YN0000: ┌ Resolution step
+➤ YN0085: │ - @azure/abort-controller@npm:2.1.2, @azure/core-auth@npm:1.10.1, @azure/core-client@npm:1.10.1, @azure/core-http-compat@npm:2.3.1, and 10 more.
+➤ YN0000: └ Completed
+➤ YN0000: ┌ Post-resolution validation
+➤ YN0060: │ @typescript-eslint/parser is listed by your project with version 7.0.0 (p6cb6c0), which doesn't satisfy what @typescript-eslint/eslint-plugin requests (^6.0.0-alpha).
+➤ YN0060: │ eslint is listed by your project with version 9.24.0 (pe6e000), which doesn't satisfy what @typescript-eslint/eslint-plugin and other dependencies request (^8.57.0).
+➤ YN0002: │ app@workspace:. doesn't provide prettier (pd88b5f), requested by eslint-plugin-prettier.
+➤ YN0086: │ Some peer dependencies are incorrectly met by your project; run yarn explain peer-requirements <hash> for details, where <hash> is the six-letter p-prefixed code.
+➤ YN0086: │ Some peer dependencies are incorrectly met by dependencies; run yarn explain peer-requirements for details.
+➤ YN0000: └ Completed
+➤ YN0000: ┌ Fetch step
+➤ YN0000: └ Completed in 1s 75ms
+➤ YN0000: ┌ Link step
+➤ YN0000: └ Completed in 0s 479ms
+➤ YN0000: · Done with warnings in 1s 766ms
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v6.7.0) to ./node_modules/.prisma/client in 165ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Curious about the SQL queries Prisma ORM generates? Optimize helps you enhance your visibility: https://pris.ly/tip-2-optimize
+
+Starting server...
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 2s
+ ○ Compiling / ...
+ ✓ Compiled / in 3s (791 modules)
+ HEAD / 200 in 3389ms
+ ✓ Compiled in 443ms (279 modules)
+ GET / 200 in 69ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2.2s (1646 modules)
+ GET /dashboard?_rsc=iqngu 200 in 41ms
+ GET /api/auth/session 200 in 2603ms
+ GET /api/auth/session 200 in 50ms
+ ✓ Compiled /api/projects in 223ms (974 modules)
+ ✓ Compiled (978 modules)
+ GET /api/clusters 200 in 619ms
+ GET /api/projects 200 in 626ms
+ GET /api/organizations 200 in 630ms
+ GET /api/projects 200 in 70ms
+ GET /api/organizations 200 in 72ms
+ GET /api/clusters 200 in 73ms
+ GET / 200 in 92ms
+ GET / 200 in 77ms
+ GET / 200 in 74ms
+ GET /api/auth/session 200 in 65ms
+ ○ Compiling /admin/federation ...
+ ✓ Compiled /admin/federation in 1012ms (1697 modules)
+ ✓ Compiled /api/admin/federation in 207ms (994 modules)
+ GET /api/admin/federation 200 in 326ms
+ GET /api/admin/federation 200 in 44ms
+ GET /api/auth/session 200 in 61ms
+ GET /api/admin/federation 200 in 39ms
+ GET /api/admin/federation 200 in 44ms
+ GET / 200 in 71ms
+ GET /api/admin/federation 200 in 76ms
+ GET /api/admin/federation 200 in 42ms
+ GET /api/admin/federation 200 in 43ms
+ GET /api/admin/federation 200 in 41ms
+ GET /api/admin/federation 200 in 41ms
+ GET /api/admin/federation 200 in 41ms
+ GET / 200 in 44ms
+ GET /api/admin/federation 200 in 49ms
+ GET /api/admin/federation 200 in 41ms
+ GET /api/admin/federation 200 in 52ms
+ GET /api/admin/federation 200 in 316ms
+ GET /api/admin/federation 200 in 45ms
+ GET /api/admin/federation 200 in 50ms
+ GET / 200 in 48ms
+ GET /api/auth/session 200 in 53ms
+ GET /api/admin/federation 200 in 43ms
+ GET /api/admin/federation 200 in 41ms
+ GET /api/admin/federation 200 in 43ms
+ GET /api/admin/federation 200 in 32ms
+ GET / 200 in 39ms
+ GET /api/admin/federation 200 in 71ms
+ GET /api/admin/federation 200 in 36ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 37ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 32ms
+ GET / 200 in 45ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 39ms
+ GET /api/admin/federation 200 in 37ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 34ms
+ GET / 200 in 36ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 50ms
+ GET /api/admin/federation 200 in 36ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 35ms
+ GET / 200 in 40ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 30ms
+ GET /api/admin/federation 200 in 40ms
+ GET /api/admin/federation 200 in 34ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 47ms
+ GET / 200 in 84ms
+ GET /api/admin/federation 200 in 96ms
+ GET /api/admin/federation 200 in 45ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 49ms
+ GET /api/admin/federation 200 in 33ms
+ GET / 200 in 47ms
+ GET /api/admin/federation 200 in 37ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 36ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 35ms
+ GET / 200 in 40ms
+ GET /api/admin/federation 200 in 40ms
+ GET /api/admin/federation 200 in 41ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 33ms
+ GET / 200 in 39ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 36ms
+ GET / 200 in 60ms
+ GET /api/admin/federation 200 in 55ms
+ GET /api/admin/federation 200 in 52ms
+ GET / 200 in 60ms
+ GET /api/admin/federation 200 in 51ms
+ GET / 200 in 39ms
+ GET /api/admin/federation 200 in 46ms
+ GET / 200 in 52ms
+ GET /api/admin/federation 200 in 48ms
+ GET / 200 in 55ms
+ GET /api/admin/federation 200 in 55ms
+ GET / 200 in 74ms
+ GET / 200 in 54ms
+ GET /api/admin/federation 200 in 46ms
+ GET / 200 in 59ms
+ GET /api/admin/federation 200 in 61ms
+ GET /api/admin/federation 200 in 49ms
+ GET / 200 in 39ms
+ GET /api/admin/federation 200 in 50ms
+ GET / 200 in 49ms
+ GET / 200 in 115ms
+ GET /api/admin/federation 200 in 93ms
+ GET / 200 in 48ms
+ GET /api/admin/federation 200 in 45ms
+ GET / 200 in 54ms
+ GET /api/admin/federation 200 in 40ms
+ GET / 200 in 53ms
+ GET /api/admin/federation 200 in 54ms
+ GET / 200 in 62ms
+ GET /api/admin/federation 200 in 75ms
+ GET / 200 in 57ms
+ GET /api/admin/federation 200 in 54ms
+ GET / 200 in 64ms
+ GET /api/admin/federation 200 in 47ms

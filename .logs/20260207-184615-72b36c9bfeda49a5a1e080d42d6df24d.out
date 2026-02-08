@@ -1,0 +1,107 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.5s (791 modules)
+ GET / 200 in 2945ms
+ ✓ Compiled in 403ms (279 modules)
+ GET / 200 in 50ms
+ GET / 200 in 36ms
+ GET / 200 in 37ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2.2s (1636 modules)
+ GET /dashboard?_rsc=iqngu 200 in 37ms
+ GET /api/auth/session 200 in 2643ms
+ GET /api/auth/session 200 in 34ms
+ ✓ Compiled /api/organizations in 207ms (969 modules)
+ ✓ Compiled (973 modules)
+ GET /api/clusters 200 in 561ms
+ GET /api/projects 200 in 580ms
+ GET /api/organizations 200 in 580ms
+ GET /api/organizations 200 in 33ms
+ GET /api/clusters 200 in 44ms
+ GET /api/projects 200 in 28ms
+ GET / 200 in 68ms
+ ○ Compiling /ai/chat ...
+ ✓ Compiled /ai/chat in 560ms (1698 modules)
+ GET /api/clusters 200 in 30ms
+ GET /api/clusters 200 in 26ms
+ ✓ Compiled /ai/reports in 460ms (1724 modules)
+ GET /api/clusters 200 in 33ms
+ ✓ Compiled /api/ai/reports in 203ms (1005 modules)
+ GET /api/ai/reports 200 in 452ms
+ GET /api/clusters 200 in 303ms
+ GET /api/ai/reports 200 in 23ms
+ GET / 200 in 44ms
+ ✓ Compiled /ai/insights in 476ms (1746 modules)
+ GET /api/clusters 200 in 28ms
+ GET /api/clusters 200 in 36ms
+ ✓ Compiled /api/ai/anomalies in 194ms (1002 modules)
+ ✓ Compiled (1004 modules)
+ GET /api/ai/anomalies?clusterId=main-cluster 200 in 436ms
+ GET /api/ai/forecasts?clusterId=main-cluster 200 in 441ms
+ ✓ Compiled /api/metrics in 209ms (1006 modules)
+ GET /api/metrics?clusterId=main-cluster 200 in 311ms
+ POST /api/ai/forecasts 200 in 37ms
+ GET /api/ai/anomalies?clusterId=main-cluster 200 in 36ms
+ GET /api/ai/forecasts?clusterId=main-cluster 200 in 41ms
+ GET /api/metrics?clusterId=main-cluster 200 in 32ms
+ POST /api/ai/anomalies 200 in 29ms
+ GET /api/ai/anomalies?clusterId=main-cluster 200 in 34ms
+ GET /api/ai/forecasts?clusterId=main-cluster 200 in 35ms
+ GET / 200 in 46ms
+ PATCH /api/ai/anomalies 200 in 33ms
+ PATCH /api/ai/anomalies 200 in 26ms
+ ✓ Compiled /dashboard in 172ms (992 modules)
+ ✓ Compiled /api/projects in 215ms (994 modules)
+ ✓ Compiled (996 modules)
+ GET /api/organizations 200 in 467ms
+ GET /api/projects 200 in 466ms
+ GET /api/clusters 200 in 459ms
+ GET /api/projects 200 in 34ms
+ GET /api/organizations 200 in 46ms
+ GET /api/clusters 200 in 43ms
+ GET / 200 in 41ms
+ GET / 200 in 43ms
+ GET / 200 in 32ms
+ ✓ Compiled /api/auth/[...nextauth] in 348ms (941 modules)
+ GET /api/auth/session 200 in 610ms
+ GET /dashboard?_rsc=iqngu 200 in 35ms
+ GET /api/auth/session 200 in 30ms
+ ✓ Compiled /api/clusters in 150ms (969 modules)
+ ✓ Compiled (973 modules)
+ GET /api/organizations 200 in 403ms
+ GET /api/clusters 200 in 401ms
+ GET /api/projects 200 in 406ms
+ GET /api/clusters 200 in 41ms
+ GET /api/organizations 200 in 43ms
+ GET /api/projects 200 in 39ms
+ GET / 200 in 66ms
+ GET / 200 in 34ms
+ GET / 200 in 36ms
+ GET / 200 in 34ms
+ GET /api/auth/session 200 in 46ms
+ GET /dashboard?_rsc=iqngu 200 in 30ms
+ GET /api/auth/session 200 in 22ms
+ GET /api/projects 200 in 39ms
+ GET /api/organizations 200 in 43ms
+ GET /api/clusters 200 in 44ms
+ GET /api/clusters 200 in 36ms
+ GET /api/projects 200 in 42ms
+ GET /api/organizations 200 in 44ms
+ GET / 200 in 36ms
+ ✓ Compiled in 761ms (742 modules)
+ ✓ Compiled in 389ms (742 modules)
+ ✓ Compiled in 554ms (730 modules)
+ ✓ Compiled in 428ms (742 modules)
+ ✓ Compiled in 282ms (745 modules)
+ ✓ Compiled in 331ms (745 modules)
+ ✓ Compiled in 267ms (745 modules)
+ ✓ Compiled in 263ms (745 modules)
+ ✓ Compiled in 243ms (745 modules)
+[?25h

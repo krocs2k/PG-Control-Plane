@@ -1,0 +1,7 @@
+app/(dashboard)/clusters/[id]/endpoints/page.tsx(257,7): error TS2322: Type '"READ_WRITE" | "READ_ONLY" | "WRITE_ONLY" | "BALANCED"' is not assignable to type '"READ_WRITE"'.
+  Type '"READ_ONLY"' is not assignable to type '"READ_WRITE"'.
+app/api/connection-endpoints/route.ts(212,7): error TS2322: Type 'string' is not assignable to type 'object'.
+app/api/connection-endpoints/route.ts(331,7): error TS2322: Type 'string' is not assignable to type 'object'.
+app/api/connection-endpoints/route.ts(332,7): error TS2322: Type 'string' is not assignable to type 'object'.
+app/api/connection-endpoints/route.ts(391,7): error TS2322: Type 'string' is not assignable to type 'object'.
+exit_code=2

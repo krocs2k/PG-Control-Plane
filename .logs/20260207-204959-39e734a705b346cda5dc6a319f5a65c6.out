@@ -1,0 +1,8 @@
+app/(dashboard)/clusters/[id]/incidents/page.tsx(642,52): error TS2322: Type '"outline"' is not assignable to type '"info" | "error" | "default" | "secondary" | "success" | "warning" | undefined'.
+app/(dashboard)/clusters/[id]/queries/page.tsx(386,34): error TS2322: Type '"outline"' is not assignable to type '"info" | "error" | "default" | "secondary" | "success" | "warning" | undefined'.
+app/(dashboard)/clusters/[id]/queries/page.tsx(432,34): error TS2322: Type '"outline"' is not assignable to type '"info" | "error" | "default" | "secondary" | "success" | "warning" | undefined'.
+app/(dashboard)/clusters/[id]/replication/page.tsx(566,65): error TS2339: Property 'lastFailed' does not exist on type 'WalActivity'.
+app/(dashboard)/clusters/[id]/replication/page.tsx(572,72): error TS2339: Property 'lastFailed' does not exist on type 'WalActivity'.
+app/(dashboard)/clusters/[id]/replication/page.tsx(574,38): error TS2339: Property 'lastFailedAt' does not exist on type 'WalActivity'.
+app/(dashboard)/clusters/[id]/replication/page.tsx(574,74): error TS2339: Property 'lastFailedAt' does not exist on type 'WalActivity'.
+exit_code=2

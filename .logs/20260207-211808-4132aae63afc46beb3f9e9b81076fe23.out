@@ -1,0 +1,158 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1852ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.7s (791 modules)
+ GET / 200 in 3121ms
+ ✓ Compiled in 440ms (279 modules)
+ ✓ Compiled /api/auth/[...nextauth] in 193ms (509 modules)
+ GET /api/auth/providers 200 in 583ms
+ GET / 200 in 72ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 646ms (867 modules)
+ GET /api/auth/session 200 in 750ms
+ GET /api/auth/session 200 in 28ms
+ ✓ Compiled /register in 279ms (877 modules)
+ GET /register 200 in 366ms
+ GET /api/auth/session 200 in 50ms
+ GET /api/auth/session 200 in 29ms
+ GET /login 200 in 58ms
+ GET /api/auth/session 200 in 48ms
+ GET /api/auth/session 200 in 42ms
+ GET /api/auth/csrf 200 in 38ms
+ ✓ Compiled /api/signup in 325ms (588 modules)
+ POST /api/signup 200 in 573ms
+ GET / 200 in 63ms
+ GET /api/auth/signin 302 in 45ms
+ GET /login?callbackUrl=https://14d6609f27.preview.abacusai.app 200 in 44ms
+ GET /api/auth/csrf 200 in 27ms
+ POST /api/auth/callback/credentials 302 in 112ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1429ms (1697 modules)
+ GET /dashboard 200 in 1550ms
+ GET / 200 in 44ms
+ GET /dashboard 200 in 55ms
+ GET /api/auth/session 200 in 67ms
+ ✓ Compiled /api/clusters in 202ms (991 modules)
+ ✓ Compiled (995 modules)
+ GET /api/clusters 200 in 468ms
+ GET /api/projects 200 in 493ms
+ GET /api/organizations 200 in 494ms
+ GET /dashboard?_rsc=iqngu 200 in 488ms
+ GET /api/clusters 200 in 61ms
+ GET /api/projects 200 in 57ms
+ GET /api/organizations 200 in 58ms
+ GET /api/organizations 200 in 54ms
+ GET /api/projects 200 in 59ms
+ GET /api/clusters 200 in 59ms
+ GET /api/organizations 200 in 49ms
+ GET /api/auth/session 200 in 741ms
+ GET /api/projects 200 in 53ms
+ GET /api/clusters 200 in 55ms
+ GET /api/auth/session 200 in 40ms
+ GET /api/auth/session 200 in 30ms
+ GET /api/auth/session 200 in 35ms
+ GET /api/auth/session 200 in 35ms
+ ○ Compiling /clusters/[id] ...
+ ✓ Compiled /clusters/[id] in 1246ms (1837 modules)
+ GET /clusters/new 200 in 1436ms
+ GET /projects 200 in 1442ms
+ GET /admin/users 200 in 1437ms
+ GET /clusters 200 in 1444ms
+ GET /clusters/main-cluster 200 in 1784ms
+ ✓ Compiled /api/admin/users in 318ms (1068 modules)
+ ✓ Compiled /api/clusters/[id] in 0ms (1068 modules)
+ GET /api/auth/session 200 in 668ms
+ ✓ Compiled in 0ms (1070 modules)
+ GET /api/projects 200 in 1226ms
+ GET /api/clusters 200 in 1162ms
+ GET /api/admin/users 200 in 1273ms
+ GET /api/auth/session 200 in 608ms
+ GET /api/projects 200 in 68ms
+ GET /api/clusters 200 in 76ms
+ GET /api/admin/users 200 in 81ms
+ GET /api/auth/session 200 in 67ms
+ GET /api/projects 200 in 39ms
+ GET /api/auth/session 200 in 32ms
+ GET /api/projects 200 in 36ms
+ GET /api/auth/session 200 in 38ms
+ GET /api/auth/session 200 in 29ms
+ GET /api/clusters/main-cluster 200 in 1143ms
+ GET /api/auth/session 200 in 61ms
+ GET /api/clusters/main-cluster 200 in 75ms
+ GET /api/auth/session 200 in 32ms
+ GET /api/auth/session 200 in 45ms
+ GET /api/auth/session 200 in 30ms
+ GET /api/auth/session 200 in 28ms
+ GET /api/auth/session 200 in 27ms
+ GET /api/auth/session 200 in 42ms
+ GET /api/auth/session 200 in 32ms
+ GET /api/auth/session 200 in 30ms
+ GET /api/auth/session 200 in 28ms
+ GET /api/auth/session 200 in 31ms
+ GET /api/auth/session 200 in 27ms
+ ○ Compiling /clusters/[id]/routing ...
+ ✓ Compiled /clusters/[id]/routing in 1764ms (1963 modules)
+ GET /clusters/main-cluster/failover 200 in 2457ms
+ GET /clusters/main-cluster/pools 200 in 2469ms
+ GET /clusters/main-cluster/replication 200 in 2471ms
+ GET /clusters/main-cluster/incidents 200 in 2479ms
+ GET /clusters/main-cluster/backups 200 in 2480ms
+ GET /clusters/main-cluster/routing 200 in 2537ms
+ GET /clusters/main-cluster/alerts 200 in 2581ms
+ GET /clusters/main-cluster/queries 200 in 2599ms
+ ○ Compiling /api/queries ...
+ ✓ Compiled /api/queries in 2.2s (1141 modules)
+ ✓ Compiled (1155 modules)
+ GET /api/clusters/main-cluster 200 in 2855ms
+ GET /api/connection-pools?clusterId=main-cluster 200 in 2960ms
+ GET /api/replication?clusterId=main-cluster&type=overview 200 in 2693ms
+ GET /api/queries?clusterId=main-cluster&type=slow 200 in 2572ms
+ GET /api/failover?clusterId=main-cluster 200 in 2770ms
+ GET /api/incidents?clusterId=main-cluster 200 in 2863ms
+ GET /api/routing?clusterId=main-cluster 200 in 2852ms
+ GET /api/queries?clusterId=main-cluster&type=stats 200 in 2609ms
+ GET /api/queries?clusterId=main-cluster&type=recommendations 200 in 2598ms
+ GET /api/backups?clusterId=main-cluster 200 in 2668ms
+ GET /api/auth/session 200 in 2936ms
+ GET /api/alerts?clusterId=main-cluster 200 in 2661ms
+ GET /api/connection-pools?clusterId=main-cluster 200 in 220ms
+ GET /api/queries?clusterId=main-cluster&type=slow 200 in 364ms
+ GET /api/queries?clusterId=main-cluster&type=recommendations 200 in 343ms
+ GET /api/queries?clusterId=main-cluster&type=stats 200 in 344ms
+ GET /api/replication?clusterId=main-cluster&type=overview 200 in 367ms
+ GET /api/failover?clusterId=main-cluster 200 in 355ms
+ GET /api/clusters/main-cluster 200 in 366ms
+ GET /api/incidents?clusterId=main-cluster 200 in 357ms
+ GET /api/routing?clusterId=main-cluster 200 in 377ms
+ GET /api/backups?clusterId=main-cluster 200 in 378ms
+ GET /api/auth/session 200 in 424ms
+ GET /api/alerts?clusterId=main-cluster 200 in 437ms
+ GET /api/replication?clusterId=main-cluster&type=lag_history&nodeId=pg-replica-1-node&hours=24 200 in 401ms
+ GET /api/failover?clusterId=main-cluster 200 in 215ms
+ GET /api/clusters/main-cluster 200 in 212ms
+ GET /api/auth/session 200 in 98ms
+ GET /api/clusters/main-cluster 200 in 48ms
+ GET /api/auth/session 200 in 103ms
+ GET /api/clusters/main-cluster 200 in 74ms
+ GET /api/auth/session 200 in 68ms
+ GET /api/clusters/main-cluster 200 in 86ms
+ GET /api/auth/session 200 in 57ms
+ GET /api/clusters/main-cluster 200 in 51ms
+ GET /api/auth/session 200 in 51ms
+ GET /api/clusters/main-cluster 200 in 50ms
+ GET /api/auth/session 200 in 48ms
+ GET /api/auth/session 200 in 33ms
+ GET /api/auth/session 200 in 29ms
+ GET /api/auth/session 200 in 30ms
+ GET /api/auth/session 200 in 46ms
+ GET /api/auth/session 200 in 60ms
+ GET /api/auth/session 200 in 31ms
+ GET /api/auth/session 200 in 32ms
+ GET /api/auth/session 200 in 35ms
+[?25h

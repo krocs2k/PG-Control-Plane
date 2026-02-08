@@ -1,0 +1,78 @@
+  ▲ Next.js 14.2.28
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/23) ...
+   Generating static pages (5/23) 
+   Generating static pages (11/23) 
+   Generating static pages (17/23) 
+ ✓ Generating static pages (23/23)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ƒ /                                    142 B          87.4 kB
+├ ƒ /_not-found                          872 B          88.1 kB
+├ ƒ /ai/chat                             4.8 kB          157 kB
+├ ƒ /ai/governance                       6.03 kB         126 kB
+├ ƒ /ai/insights                         5.97 kB         158 kB
+├ ƒ /ai/qa                               5.45 kB         128 kB
+├ ƒ /ai/recommendations                  8.21 kB         160 kB
+├ ƒ /ai/reports                          8.7 kB          161 kB
+├ ƒ /ai/tech-scout                       6.87 kB         130 kB
+├ ƒ /api/ai/anomalies                    0 B                0 B
+├ ƒ /api/ai/chat                         0 B                0 B
+├ ƒ /api/ai/forecasts                    0 B                0 B
+├ ƒ /api/ai/governance                   0 B                0 B
+├ ƒ /api/ai/qa                           0 B                0 B
+├ ƒ /api/ai/rca                          0 B                0 B
+├ ƒ /api/ai/recommendations              0 B                0 B
+├ ƒ /api/ai/reports                      0 B                0 B
+├ ƒ /api/ai/tech-scout                   0 B                0 B
+├ ƒ /api/alerts                          0 B                0 B
+├ ƒ /api/audit-logs                      0 B                0 B
+├ ƒ /api/auth/[...nextauth]              0 B                0 B
+├ ƒ /api/auth/login                      0 B                0 B
+├ ƒ /api/backups                         0 B                0 B
+├ ƒ /api/clusters                        0 B                0 B
+├ ƒ /api/clusters/[id]                   0 B                0 B
+├ ƒ /api/connection-pools                0 B                0 B
+├ ƒ /api/failover                        0 B                0 B
+├ ƒ /api/incidents                       0 B                0 B
+├ ƒ /api/metrics                         0 B                0 B
+├ ƒ /api/node-lifecycle                  0 B                0 B
+├ ƒ /api/nodes                           0 B                0 B
+├ ƒ /api/nodes/[id]                      0 B                0 B
+├ ƒ /api/organizations                   0 B                0 B
+├ ƒ /api/organizations/[id]              0 B                0 B
+├ ƒ /api/projects                        0 B                0 B
+├ ƒ /api/projects/[id]                   0 B                0 B
+├ ƒ /api/routing                         0 B                0 B
+├ ƒ /api/signup                          0 B                0 B
+├ ƒ /clusters                            5.48 kB         170 kB
+├ ƒ /clusters/[id]                       8.25 kB         179 kB
+├ ƒ /clusters/[id]/alerts                9.25 kB         168 kB
+├ ƒ /clusters/[id]/backups               6.76 kB         168 kB
+├ ƒ /clusters/[id]/failover              4.77 kB         163 kB
+├ ƒ /clusters/[id]/pools                 6.6 kB          172 kB
+├ ƒ /clusters/[id]/routing               6.59 kB         165 kB
+├ ƒ /clusters/new                        3.68 kB         132 kB
+├ ƒ /dashboard                           3.58 kB         149 kB
+├ ƒ /login                               2.29 kB         116 kB
+├ ƒ /projects                            4.78 kB         160 kB
+└ ƒ /register                            2.5 kB          116 kB
++ First Load JS shared by all            87.2 kB
+  ├ chunks/156-a6f084bb85ca8a76.js       31.7 kB
+  ├ chunks/ceb5afef-c23a865020122051.js  53.6 kB
+  └ other shared chunks (total)          1.96 kB
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
+exit_code=0

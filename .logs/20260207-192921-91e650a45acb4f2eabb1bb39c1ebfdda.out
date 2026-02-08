@@ -1,0 +1,71 @@
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+  ▲ Next.js 14.2.28
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/20) ...
+   Generating static pages (5/20) 
+   Generating static pages (10/20) 
+   Generating static pages (15/20) 
+ ✓ Generating static pages (20/20)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ƒ /                                    142 B          87.3 kB
+├ ƒ /_not-found                          873 B          88.1 kB
+├ ƒ /ai/chat                             4.8 kB          157 kB
+├ ƒ /ai/governance                       6.02 kB         126 kB
+├ ƒ /ai/insights                         5.25 kB         157 kB
+├ ƒ /ai/qa                               5.19 kB         128 kB
+├ ƒ /ai/recommendations                  8.21 kB         160 kB
+├ ƒ /ai/reports                          5.7 kB          161 kB
+├ ƒ /ai/tech-scout                       6.63 kB         130 kB
+├ ƒ /api/ai/anomalies                    0 B                0 B
+├ ƒ /api/ai/chat                         0 B                0 B
+├ ƒ /api/ai/forecasts                    0 B                0 B
+├ ƒ /api/ai/governance                   0 B                0 B
+├ ƒ /api/ai/qa                           0 B                0 B
+├ ƒ /api/ai/rca                          0 B                0 B
+├ ƒ /api/ai/recommendations              0 B                0 B
+├ ƒ /api/ai/reports                      0 B                0 B
+├ ƒ /api/ai/tech-scout                   0 B                0 B
+├ ƒ /api/audit-logs                      0 B                0 B
+├ ƒ /api/auth/[...nextauth]              0 B                0 B
+├ ƒ /api/auth/login                      0 B                0 B
+├ ƒ /api/clusters                        0 B                0 B
+├ ƒ /api/clusters/[id]                   0 B                0 B
+├ ƒ /api/incidents                       0 B                0 B
+├ ƒ /api/metrics                         0 B                0 B
+├ ƒ /api/nodes                           0 B                0 B
+├ ƒ /api/nodes/[id]                      0 B                0 B
+├ ƒ /api/organizations                   0 B                0 B
+├ ƒ /api/organizations/[id]              0 B                0 B
+├ ƒ /api/projects                        0 B                0 B
+├ ƒ /api/projects/[id]                   0 B                0 B
+├ ƒ /api/signup                          0 B                0 B
+├ ƒ /clusters                            5.58 kB         170 kB
+├ ƒ /clusters/[id]                       6.98 kB         171 kB
+├ ƒ /clusters/new                        3.68 kB         132 kB
+├ ƒ /dashboard                           3.57 kB         149 kB
+├ ƒ /login                               2.29 kB         115 kB
+├ ƒ /projects                            4.89 kB         160 kB
+└ ƒ /register                            2.49 kB         116 kB
++ First Load JS shared by all            87.2 kB
+  ├ chunks/117-55bd574053e34ee8.js       31.6 kB
+  ├ chunks/fd9d1056-197341f13f2442d1.js  53.6 kB
+  └ other shared chunks (total)          1.96 kB
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
+Successfully built app artifact

@@ -1,0 +1,5 @@
+[master a4c0359] Dynamic PostgreSQL connection endpoints
+ 5 files changed, 1518 insertions(+), 1 deletion(-)
+ create mode 100644 nextjs_space/app/(dashboard)/clusters/[id]/endpoints/page.tsx
+ create mode 100644 nextjs_space/app/api/connection-endpoints/route.ts
+###a4c0359733df444cf0bf17f60e1ab9563a8308a1###

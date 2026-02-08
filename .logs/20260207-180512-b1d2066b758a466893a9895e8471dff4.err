@@ -1,0 +1,13 @@
+ ⨯ Failed to generate static paths for /api/auth/[...nextauth]:
+SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at loadManifest (/opt/hostedapp/node/root/app/node_modules/next/dist/server/load-manifest.js:36:25)
+    at getMaybePagePath (/opt/hostedapp/node/root/app/node_modules/next/dist/server/require.js:57:59)
+    at getPagePath (/opt/hostedapp/node/root/app/node_modules/next/dist/server/require.js:92:22)
+    at requirePage (/opt/hostedapp/node/root/app/node_modules/next/dist/server/require.js:99:22)
+    at /opt/hostedapp/node/root/app/node_modules/next/dist/server/load-components.js:103:84
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async loadComponentsImpl (/opt/hostedapp/node/root/app/node_modules/next/dist/server/load-components.js:103:26)
+    at async Object.loadStaticPaths (/opt/hostedapp/node/root/app/node_modules/next/dist/server/dev/static-paths-worker.js:23:24) {
+  type: 'SyntaxError'
+}

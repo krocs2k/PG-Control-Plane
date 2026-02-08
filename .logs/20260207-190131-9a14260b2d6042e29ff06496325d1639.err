@@ -1,0 +1,132 @@
+
+
+===== TS errors =====
+
+[Test Mode] ./app/(dashboard)/ai/governance/page.tsx:238:30
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 236 |[39m                   [33m<[39m[33mdiv[39m key[33m=[39m{idx} className[33m=[39m[32m"bg-slate-900 p-3 rounded border border-slate-700"[39m[33m>[39m[0m
+[0m [90m 237 |[39m                     [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex items-center gap-2 mb-1"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 238 |[39m                       [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-slate-300"[39m[33m>[39m{finding[33m.[39mcategory}[33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m     |[39m                              [31m[1m^[22m[39m[0m
+[0m [90m 239 |[39m                       {finding[33m.[39mstatus [33m===[39m [32m'pass'[39m [33m?[39m ([0m
+[0m [90m 240 |[39m                         [33m<[39m[33mCheckCircle[39m className[33m=[39m[32m"h-4 w-4 text-green-400"[39m [33m/[39m[33m>[39m[0m
+[0m [90m 241 |[39m                       ) [33m:[39m ([0m
+
+[Test Mode] ./app/(dashboard)/ai/qa/page.tsx:193:34
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 191 |[39m                       [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex-1"[39m[33m>[39m[0m
+[0m [90m 192 |[39m                         [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex items-center gap-2 mb-2"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 193 |[39m                           [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-purple-400 border-purple-500/30"[39m[33m>[39m[0m
+[0m [90m     |[39m                                  [31m[1m^[22m[39m[0m
+[0m [90m 194 |[39m                             {test[33m.[39mcategory}[0m
+[0m [90m 195 |[39m                           [33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m 196 |[39m                           [33m<[39m[33mBadge[39m className[33m=[39m{priorityColor(test[33m.[39mpriority)}[33m>[39m[0m
+
+[Test Mode] ./app/(dashboard)/ai/qa/page.tsx:318:30
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 316 |[39m                   [33m<[39m[33mCardContent[39m className[33m=[39m[32m"pt-4"[39m[33m>[39m[0m
+[0m [90m 317 |[39m                     [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex items-center gap-2 mb-2"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 318 |[39m                       [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-purple-400 border-purple-500/30"[39m[33m>[39m[0m
+[0m [90m     |[39m                              [31m[1m^[22m[39m[0m
+[0m [90m 319 |[39m                         {scenario[33m.[39mcategory}[0m
+[0m [90m 320 |[39m                       [33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m 321 |[39m                       [33m<[39m[33mBadge[39m className[33m=[39m{riskColor(scenario[33m.[39mriskLevel)}[33m>[39m[0m
+
+[Test Mode] ./app/(dashboard)/ai/tech-scout/page.tsx:266:34
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 264 |[39m                             {ext[33m.[39mversion [33m&&[39m [33m<[39m[33mspan[39m className[33m=[39m[32m"text-slate-500 text-sm"[39m[33m>[39mv{ext[33m.[39mversion}[33m<[39m[33m/[39m[33mspan[39m[33m>[39m}[0m
+[0m [90m 265 |[39m                           [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 266 |[39m                           [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-slate-300"[39m[33m>[39m{ext[33m.[39mcategory}[33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m     |[39m                                  [31m[1m^[22m[39m[0m
+[0m [90m 267 |[39m                         [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m [90m 268 |[39m                         [33m<[39m[33mp[39m className[33m=[39m[32m"text-slate-400 text-sm"[39m[33m>[39m{ext[33m.[39museCase}[33m<[39m[33m/[39m[33mp[39m[33m>[39m[0m
+[0m [90m 269 |[39m                         {ext[33m.[39minstallCommand [33m&&[39m ([0m
+
+[Test Mode] ./app/(dashboard)/ai/tech-scout/page.tsx:482:51
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 480 |[39m                           [33m<[39m[33mspan[39m className[33m=[39m[32m"font-medium text-white"[39m[33m>[39m{rec[33m.[39marea}[33m<[39m[33m/[39m[33mspan[39m[33m>[39m[0m
+[0m [90m 481 |[39m                           [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex gap-2"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 482 |[39m                             {rec[33m.[39meffort [33m&&[39m [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m[33m>[39m{rec[33m.[39meffort} effort[33m<[39m[33m/[39m[33mBadge[39m[33m>[39m}[0m
+[0m [90m     |[39m                                                   [31m[1m^[22m[39m[0m
+[0m [90m 483 |[39m                             {rec[33m.[39mimpact [33m&&[39m [33m<[39m[33mBadge[39m className[33m=[39m[32m"bg-indigo-500/20 text-indigo-400"[39m[33m>[39m{rec[33m.[39mimpact} impact[33m<[39m[33m/[39m[33mBadge[39m[33m>[39m}[0m
+[0m [90m 484 |[39m                           [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m [90m 485 |[39m                         [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+
+[Test Mode] ./app/(dashboard)/ai/tech-scout/page.tsx:530:40
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 528 |[39m                             [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex gap-2"[39m[33m>[39m[0m
+[0m [90m 529 |[39m                               {trend[33m.[39madoptionLevel [33m&&[39m ([0m
+[0m[31m[1m>[22m[39m[90m 530 |[39m                                 [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-slate-300"[39m[33m>[39m[0m
+[0m [90m     |[39m                                        [31m[1m^[22m[39m[0m
+[0m [90m 531 |[39m                                   {trend[33m.[39madoptionLevel} adoption[0m
+[0m [90m 532 |[39m                                 [33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m 533 |[39m                               )}[0m
+
+[Test Mode] ./app/(dashboard)/ai/tech-scout/page.tsx:558:34
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 556 |[39m                             )}[0m
+[0m [90m 557 |[39m                           [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 558 |[39m                           [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-slate-400 text-xs mb-1"[39m[33m>[39m{tool[33m.[39mcategory}[33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m     |[39m                                  [31m[1m^[22m[39m[0m
+[0m [90m 559 |[39m                           [33m<[39m[33mp[39m className[33m=[39m[32m"text-slate-400 text-sm"[39m[33m>[39m{tool[33m.[39mdescription}[33m<[39m[33m/[39m[33mp[39m[33m>[39m[0m
+[0m [90m 560 |[39m                         [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m [90m 561 |[39m                       ))}[0m
+
+[Test Mode] ./app/api/ai/governance/route.ts:52:18
+Type error: Type '{ createdAt: string; }' is not assignable to type 'AuditLogOrderByWithRelationInput | AuditLogOrderByWithRelationInput[] | undefined'.
+  Object literal may only specify known properties, and 'createdAt' does not exist in type 'AuditLogOrderByWithRelationInput | AuditLogOrderByWithRelationInput[]'.
+
+[0m [90m 50 |[39m     [36mconst[39m auditLogs [33m=[39m [36mawait[39m prisma[33m.[39mauditLog[33m.[39mfindMany({[0m
+[0m [90m 51 |[39m       take[33m:[39m [35m100[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 52 |[39m       orderBy[33m:[39m { createdAt[33m:[39m [32m'desc'[39m }[33m,[39m[0m
+[0m [90m    |[39m                  [31m[1m^[22m[39m[0m
+[0m [90m 53 |[39m     })[33m;[39m[0m
+[0m [90m 54 |[39m[0m
+[0m [90m 55 |[39m     [36mconst[39m users [33m=[39m [36mawait[39m prisma[33m.[39muser[33m.[39mfindMany({[0m
+
+[Test Mode] ./app/api/ai/governance/route.ts:117:28
+Type error: Property 'createdAt' does not exist on type '{ id: string; userId: string | null; entityType: string; entityId: string; action: string; beforeState: string | null; afterState: string | null; timestamp: Date; }'.
+
+[0m [90m 115 |[39m[0m
+[0m [90m 116 |[39m [32mRecent Activity:[39m[0m
+[0m[31m[1m>[22m[39m[90m 117 |[39m [32m${auditLogs.map(l => `[${l.createdAt}] ${l.action} - ${l.entityType}/${l.entityId} by user ${l.userId || 'system'}`).join('\n')}[39m[0m
+[0m [90m     |[39m                            [31m[1m^[22m[39m[0m
+[0m [90m 118 |[39m[0m
+[0m [90m 119 |[39m [32mLook for: unusual access patterns, failed operations, bulk operations, off-hours activity, privilege changes.`[39m[33m;[39m[0m
+[0m [90m 120 |[39m         [0m
+
+[Test Mode] ./app/api/ai/governance/route.ts:179:9
+Type error: Type '{ action: string; entityType: string; entityId: any; changes: { scanType: any; resultSummary: any; }; userId: any; }' is not assignable to type '(Without<AuditLogCreateInput, AuditLogUncheckedCreateInput> & AuditLogUncheckedCreateInput) | (Without<...> & AuditLogCreateInput)'.
+  Object literal may only specify known properties, and 'changes' does not exist in type '(Without<AuditLogCreateInput, AuditLogUncheckedCreateInput> & AuditLogUncheckedCreateInput) | (Without<...> & AuditLogCreateInput)'.
+
+[0m [90m 177 |[39m         entityType[33m:[39m [32m'System'[39m[33m,[39m[0m
+[0m [90m 178 |[39m         entityId[33m:[39m clusterId [33m||[39m [32m'all'[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 179 |[39m         changes[33m:[39m { scanType[33m,[39m resultSummary[33m:[39m result[33m.[39msummary [33m||[39m result[33m.[39msecurityScore [33m||[39m result[33m.[39moverallScore }[33m,[39m[0m
+[0m [90m     |[39m         [31m[1m^[22m[39m[0m
+[0m [90m 180 |[39m         userId[33m:[39m (session[33m.[39muser [36mas[39m any)[33m.[39mid[33m,[39m[0m
+[0m [90m 181 |[39m       }[33m,[39m[0m
+[0m [90m 182 |[39m     })[33m;[39m[0m
+
+===== TS errors =====
+
+
+Failed to compile.
+
+./app/(dashboard)/ai/governance/page.tsx:238:30
+Type error: Type '"outline"' is not assignable to type '"default" | "error" | "info" | "secondary" | "success" | "warning" | undefined'.
+
+[0m [90m 236 |[39m                   [33m<[39m[33mdiv[39m key[33m=[39m{idx} className[33m=[39m[32m"bg-slate-900 p-3 rounded border border-slate-700"[39m[33m>[39m[0m
+[0m [90m 237 |[39m                     [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex items-center gap-2 mb-1"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 238 |[39m                       [33m<[39m[33mBadge[39m variant[33m=[39m[32m"outline"[39m className[33m=[39m[32m"text-slate-300"[39m[33m>[39m{finding[33m.[39mcategory}[33m<[39m[33m/[39m[33mBadge[39m[33m>[39m[0m
+[0m [90m     |[39m                              [31m[1m^[22m[39m[0m
+[0m [90m 239 |[39m                       {finding[33m.[39mstatus [33m===[39m [32m'pass'[39m [33m?[39m ([0m
+[0m [90m 240 |[39m                         [33m<[39m[33mCheckCircle[39m className[33m=[39m[32m"h-4 w-4 text-green-400"[39m [33m/[39m[33m>[39m[0m
+[0m [90m 241 |[39m                       ) [33m:[39m ([0m
+Next.js build worker exited with code: 1 and signal: null

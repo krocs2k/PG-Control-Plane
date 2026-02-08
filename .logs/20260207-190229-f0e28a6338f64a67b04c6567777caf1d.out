@@ -1,0 +1,142 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1654ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.1s (784 modules)
+ GET / 200 in 2596ms
+ ✓ Compiled in 469ms (279 modules)
+ GET / 200 in 54ms
+ ✓ Compiled in 178ms (505 modules)
+ GET / 200 in 61ms
+ GET / 200 in 36ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 1379ms (1642 modules)
+ GET /dashboard?_rsc=iqngu 200 in 31ms
+ GET /api/auth/session 200 in 1776ms
+ GET /api/auth/session 200 in 34ms
+ ✓ Compiled /api/clusters in 165ms (972 modules)
+ ✓ Compiled (976 modules)
+ GET /api/projects 200 in 502ms
+ GET /api/clusters 200 in 513ms
+ GET /api/organizations 200 in 515ms
+ GET /api/projects 200 in 27ms
+ GET /api/clusters 200 in 32ms
+ GET /api/organizations 200 in 35ms
+ ○ Compiling /ai/tech-scout ...
+ ✓ Compiled /ai/tech-scout in 603ms (1714 modules)
+ GET /api/clusters 200 in 29ms
+ GET /api/clusters 200 in 25ms
+ ✓ Compiled /api/ai/tech-scout in 197ms (999 modules)
+ POST /api/ai/tech-scout 500 in 385ms
+ GET / 200 in 65ms
+ POST /api/ai/tech-scout 500 in 153ms
+ POST /api/ai/tech-scout 500 in 126ms
+ POST /api/ai/tech-scout 500 in 130ms
+ POST /api/ai/tech-scout 500 in 54ms
+ POST /api/ai/tech-scout 500 in 118ms
+ POST /api/ai/tech-scout 500 in 122ms
+ ○ Compiling /ai/qa ...
+ ✓ Compiled /ai/qa in 585ms (1734 modules)
+ GET /api/clusters 200 in 29ms
+ GET /api/clusters 200 in 24ms
+ GET / 200 in 41ms
+ ✓ Compiled /api/ai/qa in 201ms (1011 modules)
+ POST /api/ai/qa 500 in 330ms
+ ✓ Compiled /ai/governance in 458ms (1450 modules)
+ GET /api/clusters 200 in 32ms
+ GET /api/clusters 200 in 26ms
+ ✓ Compiled /api/ai/governance in 178ms (717 modules)
+ POST /api/ai/governance 500 in 317ms
+ ✓ Compiled /ai/chat in 346ms (1757 modules)
+ GET /api/clusters 200 in 27ms
+ GET /api/clusters 200 in 24ms
+ ✓ Compiled /api/ai/chat in 193ms (1007 modules)
+ POST /api/ai/chat 200 in 1254ms
+ GET / 200 in 46ms
+ POST /api/ai/chat 200 in 2320ms
+ GET / 200 in 35ms
+ GET / 200 in 38ms
+ GET / 200 in 39ms
+ ○ Compiling /ai/recommendations ...
+ ✓ Compiled /ai/recommendations in 847ms (1697 modules)
+ ✓ Compiled /api/clusters in 147ms (979 modules)
+ GET /api/clusters 200 in 237ms
+ GET /api/clusters 200 in 31ms
+ ✓ Compiled /api/ai/recommendations in 160ms (981 modules)
+ GET /api/ai/recommendations?clusterId=main-cluster 200 in 213ms
+ ✓ Compiled /api/metrics in 204ms (983 modules)
+ GET /api/metrics?clusterId=main-cluster 200 in 266ms
+ ✓ Compiled /api/ai/anomalies in 158ms (985 modules)
+ POST /api/ai/anomalies 200 in 213ms
+ ✓ Compiled /api/ai/forecasts in 154ms (987 modules)
+ POST /api/ai/forecasts 200 in 214ms
+ POST /api/ai/recommendations 200 in 30ms
+ GET /api/ai/recommendations?clusterId=main-cluster 200 in 24ms
+ ○ Compiling /ai/insights ...
+ ✓ Compiled /ai/insights in 510ms (1752 modules)
+ GET /api/clusters 200 in 33ms
+ GET /api/ai/anomalies?clusterId=main-cluster 200 in 40ms
+ GET /api/clusters 200 in 45ms
+ GET /api/ai/forecasts?clusterId=main-cluster 200 in 25ms
+ PATCH /api/ai/anomalies 200 in 29ms
+ GET / 200 in 65ms
+ PATCH /api/ai/anomalies 200 in 28ms
+ ✓ Compiled /ai/chat in 210ms (1007 modules)
+ GET /api/clusters 200 in 27ms
+ GET /api/clusters 200 in 24ms
+ GET /api/clusters 200 in 25ms
+ GET /api/clusters 200 in 34ms
+ GET /api/ai/anomalies?clusterId=main-cluster 200 in 41ms
+ GET /api/ai/forecasts?clusterId=main-cluster 200 in 48ms
+ GET /api/clusters 200 in 29ms
+ GET /api/clusters 200 in 27ms
+ ✓ Compiled /ai/reports in 446ms (1780 modules)
+ GET /api/clusters 200 in 40ms
+ ✓ Compiled /api/ai/reports in 216ms (1020 modules)
+ GET /api/ai/reports 200 in 489ms
+ GET /api/clusters 200 in 357ms
+ GET /api/ai/reports 200 in 102ms
+ GET /api/metrics?clusterId=main-cluster 200 in 42ms
+ GET / 200 in 52ms
+ POST /api/ai/reports 200 in 18621ms
+ GET / 200 in 38ms
+ GET / 200 in 39ms
+ ✓ Compiled /ai/qa in 395ms (657 modules)
+ ✓ Compiled /api/clusters in 137ms (687 modules)
+ GET /api/clusters 200 in 223ms
+ GET /api/clusters 200 in 27ms
+ GET / 200 in 63ms
+ ✓ Compiled /api/ai/qa in 177ms (689 modules)
+ POST /api/ai/qa 500 in 309ms
+ POST /api/ai/qa 500 in 89ms
+ GET / 200 in 50ms
+ ✓ Compiled /ai/governance in 179ms (702 modules)
+ GET /api/clusters 200 in 34ms
+ GET /api/clusters 200 in 30ms
+ ✓ Compiled /api/ai/governance in 175ms (704 modules)
+ POST /api/ai/governance 500 in 352ms
+ GET / 200 in 42ms
+ ✓ Compiled /ai/tech-scout in 171ms (705 modules)
+ GET /api/clusters 200 in 35ms
+ GET /api/clusters 200 in 28ms
+ ✓ Compiled /api/ai/tech-scout in 169ms (705 modules)
+ POST /api/ai/tech-scout 500 in 301ms
+ GET / 200 in 47ms
+ ✓ Compiled in 591ms (1279 modules)
+ ✓ Compiled in 265ms (774 modules)
+ ✓ Compiled in 274ms (774 modules)
+ ✓ Compiled in 387ms (774 modules)
+ ✓ Compiled in 268ms (774 modules)
+ ✓ Compiled in 305ms (774 modules)
+ ✓ Compiled in 370ms (774 modules)
+ ✓ Compiled in 271ms (774 modules)
+ ✓ Compiled in 311ms (774 modules)
+ ✓ Compiled in 526ms (774 modules)
+ ✓ Compiled in 294ms (774 modules)
+ ✓ Compiled in 424ms (774 modules)
+[?25h

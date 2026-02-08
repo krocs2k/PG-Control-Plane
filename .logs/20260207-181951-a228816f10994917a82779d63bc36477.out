@@ -1,0 +1,43 @@
+app/(dashboard)/clusters/[id]/page.tsx(38,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectContent'.
+app/(dashboard)/clusters/[id]/page.tsx(39,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectItem'.
+app/(dashboard)/clusters/[id]/page.tsx(40,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectTrigger'.
+app/(dashboard)/clusters/[id]/page.tsx(41,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectValue'.
+app/(dashboard)/clusters/[id]/page.tsx(533,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/[id]/page.tsx(533,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/[id]/page.tsx(552,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/[id]/page.tsx(552,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/[id]/page.tsx(568,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/[id]/page.tsx(568,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/[id]/page.tsx(636,19): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/[id]/page.tsx(636,35): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/[id]/page.tsx(651,19): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/[id]/page.tsx(651,35): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/page.tsx(32,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectContent'.
+app/(dashboard)/clusters/page.tsx(33,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectItem'.
+app/(dashboard)/clusters/page.tsx(34,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectTrigger'.
+app/(dashboard)/clusters/page.tsx(35,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectValue'.
+app/(dashboard)/clusters/page.tsx(305,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/page.tsx(305,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/page.tsx(324,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/page.tsx(324,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/clusters/page.tsx(340,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/clusters/page.tsx(340,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/projects/page.tsx(28,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectContent'.
+app/(dashboard)/projects/page.tsx(29,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectItem'.
+app/(dashboard)/projects/page.tsx(30,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectTrigger'.
+app/(dashboard)/projects/page.tsx(31,3): error TS2305: Module '"@/components/ui/select"' has no exported member 'SelectValue'.
+app/(dashboard)/projects/page.tsx(279,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/projects/page.tsx(279,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+app/(dashboard)/projects/page.tsx(322,17): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (val: any) => void; }' is not assignable to type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & SelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+app/(dashboard)/projects/page.tsx(322,33): error TS7006: Parameter 'val' implicitly has an 'any' type.
+exit_code=2

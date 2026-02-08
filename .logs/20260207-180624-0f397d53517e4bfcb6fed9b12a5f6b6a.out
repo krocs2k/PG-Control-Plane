@@ -1,0 +1,102 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1458ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1513ms (784 modules)
+ GET / 200 in 2004ms
+ ✓ Compiled in 511ms (279 modules)
+ GET / 200 in 35ms
+ GET / 200 in 28ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 763ms (861 modules)
+ GET /api/auth/session 200 in 1163ms
+ GET /api/auth/session 200 in 30ms
+ GET / 200 in 61ms
+ GET / 200 in 33ms
+ GET /api/auth/session 200 in 34ms
+ GET /api/auth/session 200 in 21ms
+ GET /api/auth/providers 200 in 28ms
+ GET /api/auth/csrf 200 in 20ms
+ POST /api/auth/callback/credentials 200 in 181ms
+ GET /api/auth/session 200 in 33ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1193ms (1499 modules)
+ GET /dashboard?_rsc=iqngu 200 in 29ms
+ ✓ Compiled /api/clusters in 234ms (902 modules)
+ ✓ Compiled (906 modules)
+ GET /api/projects 200 in 490ms
+ GET /api/organizations 200 in 506ms
+ GET /api/clusters 200 in 497ms
+ GET /api/organizations 200 in 34ms
+ GET /api/projects 200 in 50ms
+ GET /api/clusters 200 in 51ms
+ ✓ Compiled /clusters in 498ms (1545 modules)
+ GET / 200 in 64ms
+ GET /api/clusters 200 in 31ms
+ GET /api/clusters 200 in 23ms
+ ✓ Compiled /clusters/[id] in 385ms (1561 modules)
+ ✓ Compiled /api/clusters/[id] in 215ms (925 modules)
+ GET /api/clusters/main-cluster 200 in 552ms
+ GET /api/clusters/main-cluster 200 in 32ms
+ GET / 200 in 45ms
+ GET /api/organizations 200 in 34ms
+ GET /api/projects 200 in 35ms
+ GET /api/projects 200 in 24ms
+ GET /api/organizations 200 in 29ms
+ GET /api/clusters 200 in 23ms
+ GET /api/clusters 200 in 19ms
+ GET /api/clusters/main-cluster 200 in 30ms
+ GET /api/clusters/main-cluster 200 in 20ms
+ GET / 200 in 27ms
+ GET / 200 in 27ms
+ GET /api/clusters 200 in 20ms
+ GET /api/clusters 200 in 19ms
+ ○ Compiling /clusters/new ...
+ ✓ Compiled /clusters/new in 666ms (1569 modules)
+ GET /api/projects 200 in 26ms
+ GET /api/projects 200 in 19ms
+ GET / 200 in 58ms
+ GET /api/clusters 200 in 24ms
+ GET /api/clusters 200 in 19ms
+ GET /api/projects 200 in 28ms
+ GET /api/organizations 200 in 30ms
+ GET /api/projects 200 in 21ms
+ GET /api/organizations 200 in 24ms
+ GET /api/clusters 200 in 21ms
+ GET /api/clusters 200 in 20ms
+ GET / 200 in 31ms
+ GET /api/projects 200 in 21ms
+ GET /api/projects 200 in 20ms
+ GET / 200 in 35ms
+ GET /api/clusters 200 in 20ms
+ GET /api/clusters 200 in 21ms
+ GET /api/clusters/main-cluster 200 in 37ms
+ GET /api/clusters/main-cluster 200 in 20ms
+ GET / 200 in 29ms
+ GET / 200 in 32ms
+ GET /api/organizations 200 in 20ms
+ GET /api/organizations 200 in 21ms
+ GET /api/projects 200 in 19ms
+ GET /api/clusters 200 in 19ms
+ GET /api/projects 200 in 19ms
+ GET /api/clusters 200 in 18ms
+ GET / 200 in 30ms
+ GET / 200 in 28ms
+ GET / 200 in 30ms
+ GET / 200 in 33ms
+ GET / 200 in 31ms
+ GET /api/clusters/main-cluster 200 in 73ms
+ GET /api/clusters/main-cluster 200 in 21ms
+ GET / 200 in 29ms
+ GET / 200 in 29ms
+ ✓ Compiled in 441ms (657 modules)
+ ✓ Compiled in 431ms (733 modules)
+ ✓ Compiled in 266ms (733 modules)
+ ✓ Compiled in 345ms (733 modules)
+ ✓ Compiled in 307ms (733 modules)
+[?25h

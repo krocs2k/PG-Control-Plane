@@ -1,0 +1,86 @@
+
+
+===== TS errors =====
+
+[Test Mode] ./app/api/failover/route.ts:81:7
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 79 |[39m       entityId[33m:[39m operation[33m.[39mid[33m,[39m[0m
+[0m [90m 80 |[39m       action[33m:[39m [32m'INITIATED'[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 81 |[39m       afterState[33m:[39m [33mJSON[39m[33m.[39mstringify({ type[33m,[39m sourceNodeId[33m,[39m targetNodeId })[33m,[39m[0m
+[0m [90m    |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 82 |[39m     })[33m;[39m[0m
+[0m [90m 83 |[39m[0m
+[0m [90m 84 |[39m     [36mreturn[39m [33mNextResponse[39m[33m.[39mjson(operation)[33m;[39m[0m
+
+[Test Mode] ./app/api/failover/route.ts:188:7
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 186 |[39m       entityId[33m:[39m id[33m,[39m[0m
+[0m [90m 187 |[39m       action[33m:[39m action[33m.[39mtoUpperCase()[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 188 |[39m       afterState[33m:[39m [33mJSON[39m[33m.[39mstringify({ status[33m:[39m updatedOperation[33m?[39m[33m.[39mstatus })[33m,[39m[0m
+[0m [90m     |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 189 |[39m     })[33m;[39m[0m
+[0m [90m 190 |[39m[0m
+[0m [90m 191 |[39m     [36mreturn[39m [33mNextResponse[39m[33m.[39mjson(updatedOperation)[33m;[39m[0m
+
+[Test Mode] ./app/api/node-lifecycle/route.ts:139:11
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 137 |[39m           entityId[33m:[39m nodeId[33m,[39m[0m
+[0m [90m 138 |[39m           action[33m:[39m [32m'DECOMMISSIONED'[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 139 |[39m           beforeState[33m:[39m [33mJSON[39m[33m.[39mstringify(node)[33m,[39m[0m
+[0m [90m     |[39m           [31m[1m^[22m[39m[0m
+[0m [90m 140 |[39m         })[33m;[39m[0m
+[0m [90m 141 |[39m[0m
+[0m [90m 142 |[39m         [90m// Delete the node[39m[0m
+
+[Test Mode] ./app/api/node-lifecycle/route.ts:225:7
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 223 |[39m       entityId[33m:[39m nodeId[33m,[39m[0m
+[0m [90m 224 |[39m       action[33m:[39m eventType[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 225 |[39m       beforeState[33m:[39m [33mJSON[39m[33m.[39mstringify({ status[33m:[39m previousStatus })[33m,[39m[0m
+[0m [90m     |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 226 |[39m       afterState[33m:[39m [33mJSON[39m[33m.[39mstringify({ status[33m:[39m newStatus })[33m,[39m[0m
+[0m [90m 227 |[39m     })[33m;[39m[0m
+[0m [90m 228 |[39m[0m
+
+[Test Mode] ./app/api/node-lifecycle/route.ts:226:7
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 224 |[39m       action[33m:[39m eventType[33m,[39m[0m
+[0m [90m 225 |[39m       beforeState[33m:[39m [33mJSON[39m[33m.[39mstringify({ status[33m:[39m previousStatus })[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 226 |[39m       afterState[33m:[39m [33mJSON[39m[33m.[39mstringify({ status[33m:[39m newStatus })[33m,[39m[0m
+[0m [90m     |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 227 |[39m     })[33m;[39m[0m
+[0m [90m 228 |[39m[0m
+[0m [90m 229 |[39m     [36mreturn[39m [33mNextResponse[39m[33m.[39mjson(updatedNode)[33m;[39m[0m
+
+[Test Mode] ./app/api/routing/route.ts:136:7
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 134 |[39m       entityId[33m:[39m clusterId[33m,[39m[0m
+[0m [90m 135 |[39m       action[33m:[39m [32m'UPDATED'[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 136 |[39m       afterState[33m:[39m [33mJSON[39m[33m.[39mstringify(updates)[33m,[39m[0m
+[0m [90m     |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 137 |[39m     })[33m;[39m[0m
+[0m [90m 138 |[39m[0m
+[0m [90m 139 |[39m     [36mreturn[39m [33mNextResponse[39m[33m.[39mjson({ success[33m:[39m [36mtrue[39m })[33m;[39m[0m
+
+===== TS errors =====
+
+
+Failed to compile.
+
+./app/api/failover/route.ts:81:7
+Type error: Type 'string' is not assignable to type 'object'.
+
+[0m [90m 79 |[39m       entityId[33m:[39m operation[33m.[39mid[33m,[39m[0m
+[0m [90m 80 |[39m       action[33m:[39m [32m'INITIATED'[39m[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 81 |[39m       afterState[33m:[39m [33mJSON[39m[33m.[39mstringify({ type[33m,[39m sourceNodeId[33m,[39m targetNodeId })[33m,[39m[0m
+[0m [90m    |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 82 |[39m     })[33m;[39m[0m
+[0m [90m 83 |[39m[0m
+[0m [90m 84 |[39m     [36mreturn[39m [33mNextResponse[39m[33m.[39mjson(operation)[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

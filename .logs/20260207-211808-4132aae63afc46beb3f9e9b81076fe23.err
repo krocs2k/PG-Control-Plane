@@ -1,0 +1,14 @@
+ ⨯ Failed to generate static paths for /api/auth/[...nextauth]:
+TypeError: __webpack_require__.C is not a function
+    at /home/ubuntu/pg_cluster_control_plane/nextjs_space/.next/server/app/api/auth/[...nextauth]/route.js:522:21
+    at Object.<anonymous> (/home/ubuntu/pg_cluster_control_plane/nextjs_space/.next/server/app/api/auth/[...nextauth]/route.js:527:3)
+    at Module._compile (node:internal/modules/cjs/loader:1554:14)
+    at Object..js (node:internal/modules/cjs/loader:1706:10)
+    at Module.load (node:internal/modules/cjs/loader:1289:32)
+    at Function._load (node:internal/modules/cjs/loader:1108:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1311:12)
+    at mod.require (/opt/hostedapp/node/root/app/node_modules/next/dist/server/require-hook.js:65:28) {
+  type: 'TypeError'
+}

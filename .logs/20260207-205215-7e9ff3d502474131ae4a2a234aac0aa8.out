@@ -1,0 +1,138 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1729ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.6s (791 modules)
+ GET / 200 in 3071ms
+ ✓ Compiled in 423ms (279 modules)
+ GET / 200 in 51ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 1145ms (861 modules)
+ GET /api/auth/session 200 in 1560ms
+ GET /api/auth/session 200 in 38ms
+ GET / 200 in 73ms
+ GET / 200 in 35ms
+ GET / 200 in 51ms
+ GET / 200 in 39ms
+ GET / 200 in 37ms
+ GET / 200 in 33ms
+ GET /api/auth/providers 200 in 46ms
+ GET /api/auth/csrf 200 in 39ms
+ POST /api/auth/callback/credentials 200 in 192ms
+ GET /api/auth/session 200 in 46ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1899ms (1648 modules)
+ GET /dashboard?_rsc=iqngu 200 in 55ms
+ ✓ Compiled /api/projects in 230ms (972 modules)
+ ✓ Compiled /api/clusters in 0ms (974 modules)
+ ✓ Compiled in 1ms (976 modules)
+ ✓ Compiled in 1ms (976 modules)
+ GET /api/organizations 200 in 856ms
+ ✓ Compiled in 1ms (976 modules)
+ GET /api/projects 200 in 1032ms
+ ✓ Compiled in 0ms (976 modules)
+ GET /api/clusters 200 in 943ms
+ ✓ Compiled in 0ms (976 modules)
+ ✓ Compiled in 0ms (976 modules)
+ ✓ Compiled in 0ms (976 modules)
+ GET /api/organizations 200 in 715ms
+ ✓ Compiled in 0ms (976 modules)
+ GET /api/projects 200 in 710ms
+ GET /api/clusters 200 in 701ms
+ ○ Compiling /clusters/[id] ...
+ ✓ Compiled /clusters/[id] in 751ms (1749 modules)
+ ✓ Compiled /api/clusters/[id] in 225ms (1014 modules)
+ GET /api/clusters/main-cluster 200 in 590ms
+ GET / 200 in 72ms
+ GET /api/clusters/main-cluster 200 in 39ms
+ ✓ Compiled /clusters/[id]/queries in 443ms (1785 modules)
+ ✓ Compiled /api/queries in 211ms (1034 modules)
+ GET /api/queries?clusterId=main-cluster&type=stats 200 in 284ms
+ GET /api/queries?clusterId=main-cluster&type=slow 200 in 297ms
+ GET /api/queries?clusterId=main-cluster&type=recommendations 200 in 298ms
+ GET /api/queries?clusterId=main-cluster&type=stats 200 in 40ms
+ GET /api/queries?clusterId=main-cluster&type=slow 200 in 46ms
+ GET /api/queries?clusterId=main-cluster&type=recommendations 200 in 47ms
+ GET / 200 in 51ms
+ GET / 200 in 39ms
+ GET /api/projects 200 in 34ms
+ GET /api/projects 200 in 29ms
+ GET /api/clusters 200 in 32ms
+ GET /api/organizations 200 in 30ms
+ GET /api/clusters 200 in 27ms
+ GET /api/organizations 200 in 26ms
+ ○ Compiling /projects ...
+ ✓ Compiled /projects in 723ms (1751 modules)
+ GET /api/projects 200 in 39ms
+ GET /api/projects 200 in 32ms
+ ✓ Compiled /api/auth/[...nextauth] in 199ms (997 modules)
+ GET /api/auth/csrf 200 in 265ms
+ POST /api/auth/signout 200 in 37ms
+ ✓ Compiled /login in 390ms (1005 modules)
+ GET /login 200 in 488ms
+ GET /api/auth/session 200 in 57ms
+ GET /api/auth/session 200 in 28ms
+ GET / 200 in 49ms
+ GET /api/auth/providers 200 in 42ms
+ GET /api/auth/csrf 200 in 56ms
+ POST /api/auth/callback/credentials 401 in 60ms
+ GET / 200 in 42ms
+ GET /api/auth/providers 200 in 40ms
+ GET /api/auth/csrf 200 in 27ms
+ POST /api/auth/callback/credentials 200 in 106ms
+ GET /api/auth/session 200 in 40ms
+ GET /dashboard?_rsc=iqngu 200 in 38ms
+ GET /api/projects 200 in 55ms
+ GET /api/clusters 200 in 61ms
+ GET /api/organizations 200 in 64ms
+ GET /api/organizations 200 in 49ms
+ GET /api/clusters 200 in 57ms
+ GET /api/projects 200 in 56ms
+ GET / 200 in 141ms
+ GET / 200 in 42ms
+ GET / 200 in 41ms
+ GET /api/auth/session 200 in 66ms
+ GET /api/auth/session 200 in 40ms
+ GET /dashboard?_rsc=iqngu 200 in 53ms
+ GET /api/projects 200 in 58ms
+ GET /api/clusters 200 in 63ms
+ GET /api/organizations 200 in 64ms
+ GET /api/clusters 200 in 47ms
+ GET /api/projects 200 in 59ms
+ GET /api/organizations 200 in 57ms
+ GET / 200 in 38ms
+ GET / 200 in 37ms
+ GET / 200 in 46ms
+ GET / 200 in 42ms
+ GET / 200 in 39ms
+ GET / 200 in 38ms
+ GET / 200 in 38ms
+ GET / 200 in 39ms
+ GET / 200 in 38ms
+ GET / 200 in 38ms
+ GET / 200 in 38ms
+ GET /api/auth/session 200 in 44ms
+ GET / 200 in 35ms
+ ✓ Compiled in 490ms (768 modules)
+ ✓ Compiled in 729ms (768 modules)
+ ✓ Compiled in 271ms (768 modules)
+ ✓ Compiled in 604ms (756 modules)
+ ✓ Compiled in 594ms (769 modules)
+ ✓ Compiled in 337ms (769 modules)
+ ✓ Compiled in 352ms (770 modules)
+ ✓ Compiled in 525ms (770 modules)
+ ✓ Compiled in 316ms (770 modules)
+ ✓ Compiled in 368ms (770 modules)
+ ✓ Compiled in 342ms (770 modules)
+ ✓ Compiled in 392ms (770 modules)
+ ✓ Compiled in 277ms (770 modules)
+ ✓ Compiled in 301ms (770 modules)
+ ✓ Compiled in 271ms (770 modules)
+ ✓ Compiled in 284ms (770 modules)
+ ✓ Compiled in 290ms (770 modules)
+[?25h

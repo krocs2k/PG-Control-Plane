@@ -1,0 +1,124 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3000
+  - Environments: .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1945ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.8s (791 modules)
+ GET / 200 in 3257ms
+ ✓ Compiled in 441ms (279 modules)
+ GET / 200 in 68ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 2.2s (1646 modules)
+ GET /dashboard?_rsc=iqngu 200 in 42ms
+ GET /api/auth/session 200 in 2631ms
+ GET /api/auth/session 200 in 40ms
+ ✓ Compiled /api/clusters in 188ms (974 modules)
+ ✓ Compiled (978 modules)
+ GET /api/projects 200 in 540ms
+ GET /api/organizations 200 in 550ms
+ GET /api/clusters 200 in 552ms
+ GET /api/projects 200 in 41ms
+ GET /api/organizations 200 in 56ms
+ GET /api/clusters 200 in 48ms
+ GET / 200 in 74ms
+ GET / 200 in 40ms
+ GET / 200 in 47ms
+ GET / 200 in 36ms
+ GET / 200 in 40ms
+ GET / 200 in 62ms
+ GET / 200 in 40ms
+ GET /api/auth/session 200 in 53ms
+ GET / 200 in 40ms
+ GET / 200 in 45ms
+ GET /api/auth/session 200 in 64ms
+ ○ Compiling /admin/federation ...
+ ✓ Compiled /admin/federation in 729ms (1697 modules)
+ ✓ Compiled /api/admin/federation in 179ms (994 modules)
+ GET /api/admin/federation 200 in 298ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 39ms
+ GET /api/admin/federation 200 in 33ms
+ GET / 200 in 70ms
+ GET /api/admin/federation 200 in 37ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 36ms
+ GET /api/admin/federation 200 in 40ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 34ms
+ GET / 200 in 42ms
+ GET /api/admin/federation 200 in 40ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 34ms
+ GET /api/admin/federation 200 in 41ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 31ms
+ GET / 200 in 39ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 34ms
+ GET /api/admin/federation 200 in 30ms
+ GET / 200 in 38ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 31ms
+ GET / 200 in 39ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 34ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 52ms
+ GET / 200 in 50ms
+ GET / 200 in 50ms
+ GET /api/admin/federation 200 in 49ms
+ GET / 200 in 55ms
+ GET /api/admin/federation 200 in 51ms
+ GET /api/admin/federation 200 in 51ms
+ GET / 200 in 41ms
+ GET / 200 in 48ms
+ GET /api/admin/federation 200 in 69ms
+ GET /api/admin/federation 200 in 47ms
+ GET / 200 in 41ms
+ GET / 200 in 46ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/auth/session 200 in 62ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 36ms
+ GET /api/admin/federation 200 in 35ms
+ GET / 200 in 38ms
+ GET /api/admin/federation 200 in 38ms
+ GET /api/admin/federation 200 in 33ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 35ms
+ GET /api/admin/federation 200 in 32ms
+ GET /api/admin/federation 200 in 32ms
+ GET / 200 in 36ms
+ GET /api/admin/federation 200 in 37ms
+ GET /api/admin/federation 200 in 31ms
+ GET /api/admin/federation 200 in 32ms
+ GET / 200 in 37ms
+ GET / 200 in 42ms
+ GET /api/admin/federation 200 in 49ms
+ GET /api/admin/federation 200 in 37ms
+ GET / 200 in 38ms
+ GET / 200 in 48ms
+ GET /api/admin/federation 200 in 51ms
+ GET /api/admin/federation 200 in 43ms
+ GET / 200 in 39ms
+ GET / 200 in 44ms
+ GET /api/admin/federation 200 in 35ms
+ GET / 200 in 46ms
+ GET /api/admin/federation 200 in 33ms
+ GET / 200 in 55ms
+ GET /api/admin/federation 200 in 70ms
+ GET /api/admin/federation 200 in 48ms
+ GET / 200 in 45ms
