@@ -1174,25 +1174,31 @@ export default function ClusterDetailPage() {
                 <GitMerge className="h-4 w-4 text-purple-400" />
                 <Label className="text-sm font-medium">Sync & Replication</Label>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="sync-enabled" className="text-sm">Enable Data Sync</Label>
-                    <p className="text-xs text-slate-500">Synchronize schema and data with cluster</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                  <div className="flex-1">
+                    <Label htmlFor="sync-enabled" className={`text-sm font-medium ${nodeForm.syncEnabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      Enable Data Sync
+                    </Label>
+                    <p className="text-xs text-slate-500 mt-0.5">Synchronize schema and data with cluster</p>
                   </div>
                   <Switch
                     id="sync-enabled"
+                    variant="success"
                     checked={nodeForm.syncEnabled}
                     onCheckedChange={(checked) => setNodeForm({ ...nodeForm, syncEnabled: checked })}
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="replication-enabled" className="text-sm">Enable Replication</Label>
-                    <p className="text-xs text-slate-500">Set up streaming replication slot</p>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                  <div className="flex-1">
+                    <Label htmlFor="replication-enabled" className={`text-sm font-medium ${nodeForm.replicationEnabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      Enable Replication
+                    </Label>
+                    <p className="text-xs text-slate-500 mt-0.5">Set up streaming replication slot</p>
                   </div>
                   <Switch
                     id="replication-enabled"
+                    variant="success"
                     checked={nodeForm.replicationEnabled}
                     onCheckedChange={(checked) => setNodeForm({ ...nodeForm, replicationEnabled: checked })}
                   />
