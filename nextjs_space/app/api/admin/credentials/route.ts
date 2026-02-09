@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
       const credential = await prisma.superuserCredential.create({
         data: {
-          username: 'pgdb_broadplane',
+          username: 'pgbp',
           currentPassword: password,
           passwordHistory: [],
           lastRotatedAt: new Date(),
@@ -416,7 +416,7 @@ async function propagatePasswordToNode(
       const connectionResult = await testNodeConnection({
         host: node.host,
         port: node.port,
-        user: 'pgdb_broadplane',
+        user: 'pgbp',
         password: password,
         database: 'postgres',
         ssl: true
@@ -437,11 +437,11 @@ async function propagatePasswordToNode(
             await changeUserPassword({
               host: node.host,
               port: node.port,
-              user: 'pgdb_broadplane',
+              user: 'pgbp',
               password: password,
               database: 'postgres',
               ssl: true
-            }, 'pgdb_broadplane', credential.currentPassword);
+            }, 'pgbp', credential.currentPassword);
 
             return {
               success: true,

@@ -2,50 +2,50 @@
 set -e
 
 # This script wraps the default PostgreSQL entrypoint
-# It ensures pgdb_broadplane superuser exists on every start
+# It ensures pgbp superuser exists on every start
 
 # Function to create control plane user
 create_control_plane_user() {
     local max_attempts=30
     local attempt=1
     
-    echo "[pgdb_broadplane] Waiting for PostgreSQL to be ready..."
+    echo "[pgbp] Waiting for PostgreSQL to be ready..."
     
     # Wait for PostgreSQL to accept connections
     while [ $attempt -le $max_attempts ]; do
         if pg_isready -U "${POSTGRES_USER:-postgres}" -q; then
-            echo "[pgdb_broadplane] PostgreSQL is ready"
+            echo "[pgbp] PostgreSQL is ready"
             break
         fi
-        echo "[pgdb_broadplane] Waiting... (attempt $attempt/$max_attempts)"
+        echo "[pgbp] Waiting... (attempt $attempt/$max_attempts)"
         sleep 1
         attempt=$((attempt + 1))
     done
     
     if [ $attempt -gt $max_attempts ]; then
-        echo "[pgdb_broadplane] ERROR: PostgreSQL did not become ready in time"
+        echo "[pgbp] ERROR: PostgreSQL did not become ready in time"
         return 1
     fi
     
-    # Check if pgdb_broadplane user exists
-    local user_exists=$(psql -U "${POSTGRES_USER:-postgres}" -tAc "SELECT 1 FROM pg_roles WHERE rolname='pgdb_broadplane'" 2>/dev/null || echo "")
+    # Check if pgbp user exists
+    local user_exists=$(psql -U "${POSTGRES_USER:-postgres}" -tAc "SELECT 1 FROM pg_roles WHERE rolname='pgbp'" 2>/dev/null || echo "")
     
     if [ "$user_exists" = "1" ]; then
-        echo "[pgdb_broadplane] User 'pgdb_broadplane' already exists"
+        echo "[pgbp] User 'pgbp' already exists"
         
-        # Update password if PGDB_BROADPLANE_PASSWORD is set
-        if [ -n "$PGDB_BROADPLANE_PASSWORD" ]; then
-            echo "[pgdb_broadplane] Updating password for 'pgdb_broadplane'"
-            psql -U "${POSTGRES_USER:-postgres}" -c "ALTER USER pgdb_broadplane WITH PASSWORD '${PGDB_BROADPLANE_PASSWORD}'" 2>/dev/null || true
+        # Update password if PGBP_PASSWORD is set
+        if [ -n "$PGBP_PASSWORD" ]; then
+            echo "[pgbp] Updating password for 'pgbp'"
+            psql -U "${POSTGRES_USER:-postgres}" -c "ALTER USER pgbp WITH PASSWORD '${PGBP_PASSWORD}'" 2>/dev/null || true
         fi
     else
-        echo "[pgdb_broadplane] Creating superuser 'pgdb_broadplane'..."
+        echo "[pgbp] Creating superuser 'pgbp'..."
         
         # Use provided password or generate one
-        local password="${PGDB_BROADPLANE_PASSWORD:-$(openssl rand -base64 24)}"
+        local password="${PGBP_PASSWORD:-$(openssl rand -base64 24)}"
         
         psql -U "${POSTGRES_USER:-postgres}" <<-EOSQL
-            CREATE USER pgdb_broadplane WITH 
+            CREATE USER pgbp WITH 
                 SUPERUSER 
                 CREATEDB 
                 CREATEROLE 
@@ -54,20 +54,20 @@ create_control_plane_user() {
                 PASSWORD '${password}';
             
             -- Grant additional privileges
-            GRANT ALL PRIVILEGES ON DATABASE postgres TO pgdb_broadplane;
+            GRANT ALL PRIVILEGES ON DATABASE postgres TO pgbp;
 EOSQL
         
-        echo "[pgdb_broadplane] ✅ User 'pgdb_broadplane' created successfully"
+        echo "[pgbp] ✅ User 'pgbp' created successfully"
         
         # Output connection string if password was auto-generated
-        if [ -z "$PGDB_BROADPLANE_PASSWORD" ]; then
-            echo "[pgdb_broadplane] ========================================"
-            echo "[pgdb_broadplane] AUTO-GENERATED CREDENTIALS"
-            echo "[pgdb_broadplane] Username: pgdb_broadplane"
-            echo "[pgdb_broadplane] Password: ${password}"
-            echo "[pgdb_broadplane] Connection String:"
-            echo "[pgdb_broadplane] postgresql://pgdb_broadplane:${password}@localhost:5432/postgres"
-            echo "[pgdb_broadplane] ========================================"
+        if [ -z "$PGBP_PASSWORD" ]; then
+            echo "[pgbp] ========================================"
+            echo "[pgbp] AUTO-GENERATED CREDENTIALS"
+            echo "[pgbp] Username: pgbp"
+            echo "[pgbp] Password: ${password}"
+            echo "[pgbp] Connection String:"
+            echo "[pgbp] postgresql://pgbp:${password}@localhost:5432/postgres"
+            echo "[pgbp] ========================================"
         fi
     fi
 }

@@ -1,4 +1,4 @@
-# Custom PostgreSQL image with pgdb_broadplane user auto-creation
+# Custom PostgreSQL image with pgbp user auto-creation
 FROM postgres:16-alpine
 
 # Install openssl for password generation

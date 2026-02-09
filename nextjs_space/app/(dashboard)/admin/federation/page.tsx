@@ -369,7 +369,7 @@ export default function FederationPage() {
               <Network className="h-6 w-6 text-purple-400" />
               Control Plane Federation
             </h1>
-            <p className="text-slate-400">Connect and synchronize multiple pgDB BroadPlane instances</p>
+            <p className="text-slate-400">Connect and synchronize multiple pgBP instances</p>
           </div>
           <div className="flex items-center gap-2">
             {identity?.role === 'PRINCIPLE' && (
@@ -577,7 +577,7 @@ export default function FederationPage() {
                   <Network className="h-12 w-12 text-slate-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-white mb-2">No Connected Control Planes</h3>
                   <p className="text-slate-400 mb-4">
-                    Connect to another pgDB BroadPlane instance to enable federation and data synchronization.
+                    Connect to another pgBP instance to enable federation and data synchronization.
                   </p>
                   <Button
                     onClick={() => setShowPartnershipDialog(true)}
@@ -841,7 +841,7 @@ export default function FederationPage() {
             <DialogHeader>
               <DialogTitle className="text-white">Connect Control Plane</DialogTitle>
               <DialogDescription className="text-slate-400">
-                Send a partnership request to another pgDB BroadPlane instance. You will become a Partner and
+                Send a partnership request to another pgBP instance. You will become a Partner and
                 they will become the Principle.
               </DialogDescription>
             </DialogHeader>
