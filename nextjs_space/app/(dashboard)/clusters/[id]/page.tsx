@@ -274,34 +274,56 @@ export default function ClusterDetailPage() {
       const hasCredentials = connStrToTest.includes('@') && !connStrToTest.includes('••••••••');
       const isValidFormat = connStrToTest.startsWith('postgresql://') || connStrToTest.startsWith('postgres://');
 
-      // Simulate connection test for demo
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-
+      // Validate format first
       if (!isValidFormat) {
         setConnectionTestResult({
           success: false,
           error: 'Invalid format. Connection string must start with postgresql:// or postgres://',
         });
-      } else if (!hasCredentials) {
-        setConnectionTestResult({
-          success: false,
-          error: editingNode && !connectionStringModified
-            ? 'Using existing credentials for connection test'
-            : 'Authentication required. Include credentials in connection string: postgresql://user:password@host:port/database',
-        });
-        // If editing with unchanged credentials, still show success
-        if (editingNode && !connectionStringModified && originalConnectionString) {
+        return;
+      }
+
+      if (!hasCredentials) {
+        // If editing with unchanged credentials, test using existing node's stored credentials
+        if (editingNode && !connectionStringModified) {
+          const res = await fetch('/api/nodes', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nodeId: editingNode.id,
+              action: 'test-connection',
+            }),
+          });
+          const data = await res.json();
           setConnectionTestResult({
-            success: true,
-            pgVersion: '15.4',
+            success: data.success,
+            error: data.error,
+            pgVersion: data.pgVersion,
+          });
+        } else {
+          setConnectionTestResult({
+            success: false,
+            error: 'Authentication required. Include credentials in connection string: postgresql://user:password@host:port/database',
           });
         }
-      } else {
-        setConnectionTestResult({
-          success: true,
-          pgVersion: '15.4',
-        });
+        return;
       }
+
+      // Actually test the connection via API
+      const res = await fetch('/api/nodes/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          connectionString: connStrToTest,
+        }),
+      });
+      
+      const data = await res.json();
+      setConnectionTestResult({
+        success: data.success,
+        error: data.error,
+        pgVersion: data.pgVersion,
+      });
     } catch (error) {
       setConnectionTestResult({
         success: false,
