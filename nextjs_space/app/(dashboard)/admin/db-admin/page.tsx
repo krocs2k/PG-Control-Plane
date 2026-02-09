@@ -387,63 +387,63 @@ export default function DBAdminPage() {
   const currentPassword = credential?.currentPassword || 'YOUR_PASSWORD_HERE';
   const escapedPassword = currentPassword.replace(/'/g, "'\"'\"'").replace(/\$/g, '\\$');
 
-  const dockerScript = `--entrypoint /bin/sh -c "docker-entrypoint.sh postgres & sleep 5 && until pg_isready; do sleep 1; done && psql -U postgres -tc \"SELECT 1 FROM pg_roles WHERE rolname='broadplane_db'\" | grep -q 1 || psql -U postgres -c \"CREATE USER broadplane_db WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${escapedPassword}'\" && wait"`;
+  const dockerScript = `--entrypoint /bin/sh -c "docker-entrypoint.sh postgres & sleep 5 && until pg_isready; do sleep 1; done && psql -U postgres -tc \"SELECT 1 FROM pg_roles WHERE rolname='pgdb_broadplane'\" | grep -q 1 || psql -U postgres -c \"CREATE USER pgdb_broadplane WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${escapedPassword}'\" && wait"`;
 
-  const pgAdminScript = `-- PgAdmin SQL Script for broadplane_db user setup
+  const pgAdminScript = `-- PgAdmin SQL Script for pgdb_broadplane user setup
 -- Run this as a superuser (e.g., postgres)
 
 -- Check if user exists
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'broadplane_db') THEN
-        CREATE USER broadplane_db WITH 
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'pgdb_broadplane') THEN
+        CREATE USER pgdb_broadplane WITH 
             SUPERUSER 
             CREATEDB 
             CREATEROLE 
             REPLICATION 
             LOGIN 
             PASSWORD '${currentPassword}';
-        RAISE NOTICE 'User broadplane_db created successfully';
+        RAISE NOTICE 'User pgdb_broadplane created successfully';
     ELSE
-        ALTER USER broadplane_db WITH PASSWORD '${currentPassword}';
-        RAISE NOTICE 'User broadplane_db password updated';
+        ALTER USER pgdb_broadplane WITH PASSWORD '${currentPassword}';
+        RAISE NOTICE 'User pgdb_broadplane password updated';
     END IF;
 END
 $$;`;
 
   const cliScript = `#!/bin/bash
-# PostgreSQL broadplane_db user setup script
+# PostgreSQL pgdb_broadplane user setup script
 # Run on the PostgreSQL server with superuser access
 
-PGPASSWORD=\${PGPASSWORD:-} psql -U postgres -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='broadplane_db'" | grep -q 1
+PGPASSWORD=\${PGPASSWORD:-} psql -U postgres -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='pgdb_broadplane'" | grep -q 1
 if [ \$? -ne 0 ]; then
-    echo "Creating broadplane_db user..."
-    PGPASSWORD=\${PGPASSWORD:-} psql -U postgres -d postgres -c "CREATE USER broadplane_db WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${escapedPassword}'"
+    echo "Creating pgdb_broadplane user..."
+    PGPASSWORD=\${PGPASSWORD:-} psql -U postgres -d postgres -c "CREATE USER pgdb_broadplane WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${escapedPassword}'"
     echo "User created successfully."
 else
-    echo "Updating broadplane_db password..."
-    PGPASSWORD=\${PGPASSWORD:-} psql -U postgres -d postgres -c "ALTER USER broadplane_db WITH PASSWORD '${escapedPassword}'"
+    echo "Updating pgdb_broadplane password..."
+    PGPASSWORD=\${PGPASSWORD:-} psql -U postgres -d postgres -c "ALTER USER pgdb_broadplane WITH PASSWORD '${escapedPassword}'"
     echo "Password updated."
 fi`;
 
   const abacusScript = `# Abacus AI DeepAgent Script
-# Use this to create the broadplane_db superuser via DeepAgent
+# Use this to create the pgdb_broadplane superuser via DeepAgent
 
 # First, SSH into your PostgreSQL server or run these commands directly:
 
 # Option 1: Using psql directly
 sudo -u postgres psql -c "DO \$\$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'broadplane_db') THEN
-        CREATE USER broadplane_db WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${currentPassword}';
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'pgdb_broadplane') THEN
+        CREATE USER pgdb_broadplane WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${currentPassword}';
     ELSE
-        ALTER USER broadplane_db WITH PASSWORD '${currentPassword}';
+        ALTER USER pgdb_broadplane WITH PASSWORD '${currentPassword}';
     END IF;
 END
 \$\$;"
 
 # Option 2: If you have docker-compose running PostgreSQL
-docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER broadplane_db WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${currentPassword}' " 2>/dev/null || docker exec -it <postgres_container_name> psql -U postgres -c "ALTER USER broadplane_db WITH PASSWORD '${currentPassword}'"`;
+docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER pgdb_broadplane WITH SUPERUSER CREATEDB CREATEROLE REPLICATION LOGIN PASSWORD '${currentPassword}' " 2>/dev/null || docker exec -it <postgres_container_name> psql -U postgres -c "ALTER USER pgdb_broadplane WITH PASSWORD '${currentPassword}'"`;
 
   // Show loading while checking MFA or loading credentials
   if (checkingMfa || loading) {
@@ -560,7 +560,7 @@ docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER broad
               DB Admin - Superuser Credentials
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Manage the broadplane_db superuser account across all PostgreSQL nodes
+              Manage the pgdb_broadplane superuser account across all PostgreSQL nodes
             </p>
           </div>
           <Button onClick={fetchCredentials} variant="outline" size="icon">
@@ -602,7 +602,7 @@ docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER broad
                 No Superuser Credentials Found
               </h2>
               <p className="text-slate-500 dark:text-slate-400 mb-6">
-                Initialize the broadplane_db superuser account to manage your PostgreSQL databases.
+                Initialize the pgdb_broadplane superuser account to manage your PostgreSQL databases.
               </p>
               <Button
                 onClick={initializeCredentials}
@@ -746,7 +746,7 @@ docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER broad
                   Setup Scripts
                 </CardTitle>
                 <CardDescription>
-                  Use these scripts to create the broadplane_db superuser on new PostgreSQL databases
+                  Use these scripts to create the pgdb_broadplane superuser on new PostgreSQL databases
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -934,7 +934,7 @@ docker exec -it <postgres_container_name> psql -U postgres -c "CREATE USER broad
                 Propagate Credentials to All Nodes
               </AlertDialogTitle>
               <AlertDialogDescription>
-                This will attempt to update the broadplane_db password on all {nodes.length} registered nodes.
+                This will attempt to update the pgdb_broadplane password on all {nodes.length} registered nodes.
                 Nodes that cannot be updated will be flagged for manual re-enrollment.
               </AlertDialogDescription>
             </AlertDialogHeader>

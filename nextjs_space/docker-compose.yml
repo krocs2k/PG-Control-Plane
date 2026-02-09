@@ -10,9 +10,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: broadplane_db
-      # Set this to define broadplane_db password (auto-generated if not set)
-      BROADPLANE_DB_PASSWORD: ${BROADPLANE_DB_PASSWORD:-}
+      POSTGRES_DB: pgdb_broadplane
+      # Set this to define pgdb_broadplane password (auto-generated if not set)
+      PGDB_BROADPLANE_PASSWORD: ${PGDB_BROADPLANE_PASSWORD:-}
     ports:
       - '5432:5432'
     volumes:

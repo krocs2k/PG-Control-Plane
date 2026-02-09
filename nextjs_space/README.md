@@ -1,4 +1,4 @@
-# BroadPlane-DB
+# pgDB BroadPlane
 
 A comprehensive management platform for PostgreSQL clusters with federation, AI-powered insights, backup management, alerting, and more.
 
