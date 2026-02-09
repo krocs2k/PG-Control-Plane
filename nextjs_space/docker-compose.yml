@@ -10,9 +10,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pg_control_plane
-      # Set this to define pg_control_plane password (auto-generated if not set)
-      PG_CONTROL_PLANE_PASSWORD: ${PG_CONTROL_PLANE_PASSWORD:-}
+      POSTGRES_DB: broadplane_db
+      # Set this to define broadplane_db password (auto-generated if not set)
+      BROADPLANE_DB_PASSWORD: ${BROADPLANE_DB_PASSWORD:-}
     ports:
       - '5432:5432'
     volumes:

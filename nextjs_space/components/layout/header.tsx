@@ -90,7 +90,7 @@ export function Header() {
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Database className="h-8 w-8 text-cyan-500" />
-            <span className="text-xl font-bold text-slate-900 dark:text-slate-100">PG Control Plane</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-slate-100">BroadPlane-DB</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

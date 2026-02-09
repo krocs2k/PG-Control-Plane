@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 
-const SYSTEM_PROMPT = `You are an expert PostgreSQL Database Reliability Engineer (DBRE) and AI assistant for the PG Cluster Control Plane. You help users manage PostgreSQL clusters, diagnose issues, and optimize performance.
+const SYSTEM_PROMPT = `You are an expert PostgreSQL Database Reliability Engineer (DBRE) and AI assistant for BroadPlane-DB. You help users manage PostgreSQL clusters, diagnose issues, and optimize performance.
 
 You have access to the following tools that you can call by responding with JSON in this format:
 {"tool": "tool_name", "params": {...}}

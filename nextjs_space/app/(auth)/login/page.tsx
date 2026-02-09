@@ -84,7 +84,7 @@ export default function LoginPage() {
         <CardDescription>
           {mfaRequired
             ? 'Enter the code from your authenticator app'
-            : 'Sign in to your PG Control Plane account'}
+            : 'Sign in to your BroadPlane-DB account'}
         </CardDescription>
       </CardHeader>
       <CardContent>

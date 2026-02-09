@@ -942,7 +942,7 @@ enum CredentialStatus {
 
 model SuperuserCredential {
   id                  String           @id @default(cuid())
-  username            String           @default("pg_control_plane")
+  username            String           @default("broadplane_db")
   currentPassword     String           @db.Text  // Stored in plaintext as requested
   passwordHistory     String[]         // Last 6 passwords (stored in plaintext)
   lastRotatedAt       DateTime         @default(now())

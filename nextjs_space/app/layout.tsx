@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'PG Cluster Control Plane',
+  title: 'BroadPlane-DB',
   description: 'Enterprise PostgreSQL Cluster Management',
   icons: {
     icon: '/favicon.svg',
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'PG Cluster Control Plane',
+    title: 'BroadPlane-DB',
     description: 'Enterprise PostgreSQL Cluster Management',
     images: ['/og-image.png'],
   },
