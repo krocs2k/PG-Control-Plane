@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       parsed.database,
       parsed.user,
       parsed.password,
-      sslMode || parsed.sslMode || 'require'
+      sslMode || parsed.sslMode || 'disable'
     );
 
     // Actually test the connection

@@ -119,7 +119,7 @@ export async function PUT(
         parsed.database,
         parsed.user,
         parsed.password,
-        sslMode || parsed.sslMode || 'require'
+        sslMode || parsed.sslMode || 'disable'
       );
       finalDbUser = parsed.user;
       finalDbPassword = parsed.password;

@@ -155,8 +155,8 @@ model Node {
   // Database authentication
   dbUser            String?
   dbPassword        String?        @db.Text
-  sslEnabled        Boolean        @default(true)
-  sslMode           String         @default("require")
+  sslEnabled        Boolean        @default(false)
+  sslMode           String         @default("disable")
   // Connection status
   role              NodeRole       @default(REPLICA)
   status            NodeStatus     @default(OFFLINE)

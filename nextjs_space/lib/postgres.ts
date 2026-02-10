@@ -54,7 +54,7 @@ export function parseConnectionString(connStr: string): {
       database,
       user,
       password,
-      sslMode: params.sslmode || params.ssl_mode || 'require',
+      sslMode: params.sslmode || params.ssl_mode || 'disable',
     };
   } catch {
     return null;

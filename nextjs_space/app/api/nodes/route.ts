@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       parsed.database,
       finalUser,
       finalPassword,
-      sslMode || parsed.sslMode || 'require'
+      sslMode || parsed.sslMode || 'disable'
     );
 
     // Test connection if requested
@@ -157,8 +157,8 @@ export async function POST(request: Request) {
         connectionString: fullConnectionString,
         dbUser: finalUser,
         dbPassword: finalPassword,
-        sslEnabled: sslEnabled !== false,
-        sslMode: sslMode || parsed.sslMode || 'require',
+        sslEnabled: sslEnabled === true,
+        sslMode: sslMode || parsed.sslMode || 'disable',
         role: role || 'REPLICA',
         status: connectionVerified ? 'ONLINE' : 'OFFLINE',
         connectionVerified,
