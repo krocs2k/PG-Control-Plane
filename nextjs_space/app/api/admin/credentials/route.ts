@@ -407,61 +407,66 @@ async function propagatePasswordToNode(
   // Passwords to try: current first, then history (oldest to newest order in history)
   const passwordsToTry = [credential.currentPassword, ...credential.passwordHistory];
   
+  // Try SSL first, then without SSL
+  const sslModes = [true, false];
+  
   for (let i = 0; i < passwordsToTry.length; i++) {
     const password = passwordsToTry[i];
     const isCurrentPassword = i === 0;
     
-    try {
-      // Try to connect with this password
-      const connectionResult = await testNodeConnection({
-        host: node.host,
-        port: node.port,
-        user: 'pgbp',
-        password: password,
-        database: 'postgres',
-        ssl: true
-      });
+    for (const ssl of sslModes) {
+      try {
+        // Try to connect with this password and SSL mode
+        const connectionResult = await testNodeConnection({
+          host: node.host,
+          port: node.port,
+          user: 'pgbp',
+          password: password,
+          database: 'postgres',
+          ssl
+        });
 
-      if (connectionResult.success) {
-        // Connection succeeded
-        if (isCurrentPassword) {
-          // Already using current password, we're good
-          return {
-            success: true,
-            status: 'SUCCESS',
-            passwordUsed: 'current'
-          };
-        } else {
-          // Connected with old password, need to update to current
-          try {
-            await changeUserPassword({
-              host: node.host,
-              port: node.port,
-              user: 'pgbp',
-              password: password,
-              database: 'postgres',
-              ssl: true
-            }, 'pgbp', credential.currentPassword);
-
+        if (connectionResult.success) {
+          // Connection succeeded
+          if (isCurrentPassword) {
+            // Already using current password, we're good
             return {
               success: true,
               status: 'SUCCESS',
-              passwordUsed: `history_${i}`,
-              passwordUpdatedOnDb: true
+              passwordUsed: 'current'
             };
-          } catch (changeErr) {
-            return {
-              success: false,
-              status: 'FAILED',
-              error: `Connected with old password but failed to update: ${changeErr}`,
-              passwordUsed: `history_${i}`
-            };
+          } else {
+            // Connected with old password, need to update to current
+            try {
+              await changeUserPassword({
+                host: node.host,
+                port: node.port,
+                user: 'pgbp',
+                password: password,
+                database: 'postgres',
+                ssl
+              }, 'pgbp', credential.currentPassword);
+
+              return {
+                success: true,
+                status: 'SUCCESS',
+                passwordUsed: `history_${i}`,
+                passwordUpdatedOnDb: true
+              };
+            } catch (changeErr) {
+              return {
+                success: false,
+                status: 'FAILED',
+                error: `Connected with old password but failed to update: ${changeErr}`,
+                passwordUsed: `history_${i}`
+              };
+            }
           }
         }
+      } catch (err) {
+        // Connection failed with this password/SSL combo, try next
+        continue;
       }
-    } catch (err) {
-      // Connection failed with this password, try next
-      continue;
     }
   }
 
