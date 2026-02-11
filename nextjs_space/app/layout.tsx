@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script src="https://apps.abacus.ai/chatllm/appllm-lib.js" />
+        {/* Script removed for VPS deployment */}
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <Providers>{children}</Providers>
